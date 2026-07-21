@@ -299,50 +299,60 @@
     الجمهورية / السلطنة — نظام حصر وتثمين أضرار أصول الطرق والمنشآت العامة © 2026
   </footer>
 
-  <script>
-    // --- 1. إعدادات قاعدة البيانات السحابية (ضع المفاتيح الخاصة بك هنا) ---
-    const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_URL.supabase.co';
-    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+ <script>
+  // --- 1. إعدادات Supabase ---
+  const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_URL.supabase.co'; // ضع رابطك هنا
+  const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';                         // ضع مفتاحك هنا
+  
+  let supabase = null;
+  try {
+    if (typeof supabase !== 'undefined' && SUPABASE_URL.includes('supabase.co')) {
+      supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+  } catch (e) {
+    console.warn("لم يتم إعداد Supabase بالشكل الصحيح، سيعمل النظام محلياً.");
+  }
 
-    // --- البيانات الافتراضية ---
-    const DEFAULT_PRICES = [
-      {id: 'asphalt', name: 'الطبقة الأسفلتية (م٢)', unit: 'متر مربع', price: 2.500},
-      {id: 'aggregate', name: 'ردم وحصى (م٣)', unit: 'متر مكعب', price: 9.000},
-      {id: 'shoulder', name: 'أكتاف الطريق (م طولي)', unit: 'متر طولي', price: 5.000},
-      {id: 'drain', name: 'قناة تصريف (م)', unit: 'متر', price: 12.000},
-      {id: 'sign', name: 'لوحة إرشادية/تحذيرية', unit: 'عدد', price: 40.000}
-    ];
+  // --- البيانات الافتراضية (تظهر دائماً لضمان عمل الصفحة) ---
+  const DEFAULT_PRICES = [
+    {id: 'asphalt', name: 'الطبقة الأسفلتية (م٢)', unit: 'متر مربع', price: 2.500},
+    {id: 'aggregate', name: 'ردم وحصى (م٣)', unit: 'متر مكعب', price: 9.000},
+    {id: 'shoulder', name: 'أكتاف الطريق (م طولي)', unit: 'متر طولي', price: 5.000},
+    {id: 'drain', name: 'قناة تصريف (م)', unit: 'متر', price: 12.000},
+    {id: 'sign', name: 'لوحة إرشادية/تحذيرية', unit: 'عدد', price: 40.000}
+  ];
 
-    // --- عناصر DOM ---
-    const compSelect = document.getElementById('compSelect');
-    const compSearch = document.getElementById('compSearch');
-    const unitInput = document.getElementById('unit');
-    const qtyInput = document.getElementById('qty');
-    const addBtn = document.getElementById('addBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const incTableBody = document.querySelector('#incTable tbody');
-    const grandTotalEl = document.getElementById('grandTotal');
-    const priceTableBody = document.querySelector('#priceTable tbody');
-    const addPriceBtn = document.getElementById('addPrice');
-    const savePricesBtn = document.getElementById('savePrices');
-    const modeSelect = document.getElementById('mode');
-    const readonlyNote = document.getElementById('readonlyNote');
-    const reportName = document.getElementById('reportName');
-    const cloudStatus = document.getElementById('cloudStatus');
+  // --- عناصر DOM ---
+  const compSelect = document.getElementById('compSelect');
+  const compSearch = document.getElementById('compSearch');
+  const unitInput = document.getElementById('unit');
+  const qtyInput = document.getElementById('qty');
+  const addBtn = document.getElementById('addBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const incTableBody = document.querySelector('#incTable tbody');
+  const grandTotalEl = document.getElementById('grandTotal');
+  const priceTableBody = document.querySelector('#priceTable tbody');
+  const addPriceBtn = document.getElementById('addPrice');
+  const savePricesBtn = document.getElementById('savePrices');
+  const modeSelect = document.getElementById('mode');
+  const readonlyNote = document.getElementById('readonlyNote');
+  const reportName = document.getElementById('reportName');
+  const cloudStatus = document.getElementById('cloudStatus');
 
-    let prices = [];
-    let incidents = [];
+  let prices = [...DEFAULT_PRICES];
+  let incidents = [];
 
-    const uid = () => Math.random().toString(36).slice(2,9);
+  const uid = () => Math.random().toString(36).slice(2,9);
 
-    // --- 2. الحفظ والقراءة السحابية من الاستضافة ---
-    async function saveToCloud() {
-      cloudStatus.className = 'status-badge status-syncing';
-      cloudStatus.textContent = '⏳ جاري الحفظ في الاستضافة...';
+  // --- الحفظ والقراءة السحابية آمنة الحماية ---
+  async function saveToCloud() {
+    if (!supabase) return;
+    cloudStatus.className = 'status-badge status-syncing';
+    cloudStatus.textContent = '⏳ جاري الحفظ...';
 
+    try {
       const payload = {
-        id: 1, // معرف المجلد أو السجل الموحد
+        id: 1,
         prices: prices,
         incidents: incidents,
         report_name: reportName.value,
@@ -350,191 +360,190 @@
         updated_at: new Date()
       };
 
-      const { data, error } = await supabase
-        .from('road_damage_data')
-        .upsert([payload]);
+      const { error } = await supabase.from('road_damage_data').upsert([payload]);
 
-      if (error) {
-        console.error('Cloud save error:', error);
-        cloudStatus.className = 'status-badge';
-        cloudStatus.style.background = '#ef4444';
-        cloudStatus.textContent = '❌ فشل الاتصال بالسيرفر';
-      } else {
-        cloudStatus.className = 'status-badge status-online';
-        cloudStatus.textContent = '🟢 تم الحفظ سحابياً بنجاح';
-      }
+      if (error) throw error;
+      cloudStatus.className = 'status-badge status-online';
+      cloudStatus.textContent = '🟢 تم الحفظ سحابياً بنجاح';
+    } catch (err) {
+      console.error('Cloud save error:', err);
+      cloudStatus.className = 'status-badge';
+      cloudStatus.style.background = '#ef4444';
+      cloudStatus.textContent = '⚠️ خطأ في الاتصال بالسيرفر (حفظ محلي)';
     }
+  }
 
-    async function loadFromCloud() {
-      cloudStatus.className = 'status-badge status-syncing';
-      cloudStatus.textContent = '⏳ جاري جلب البيانات...';
+  async function loadFromCloud() {
+    // تحميل افتراضي أولي لضمان ظهور المكونات فوراً
+    prices = [...DEFAULT_PRICES];
+    renderPriceTable();
+    renderIncidents();
 
+    if (!supabase) return;
+
+    try {
       const { data, error } = await supabase
         .from('road_damage_data')
         .select('*')
         .eq('id', 1)
-        .single();
+        .maybeSingle();
 
       if (data) {
-        prices = data.prices || DEFAULT_PRICES;
+        if (data.prices && data.prices.length > 0) prices = data.prices;
         incidents = data.incidents || [];
         reportName.value = data.report_name || '';
         modeSelect.value = data.mode || 'edit';
         cloudStatus.className = 'status-badge status-online';
         cloudStatus.textContent = '🟢 متصل بقاعدة البيانات السحابية';
-      } else {
-        prices = DEFAULT_PRICES;
-        incidents = [];
-        cloudStatus.className = 'status-badge status-online';
-        cloudStatus.textContent = '🟢 السيرفر جاهز (بيانات جديدة)';
       }
-      renderPriceTable();
-      renderIncidents();
-      readonlyNote.style.display = modeSelect.value==='readonly'?'flex':'none';
+    } catch (err) {
+      console.warn('استخدام البيانات الافتراضية لعدم توفر السيرفر حالياً');
     }
 
-    // --- تحويل الرقم إلى كلمات ---
-    function numberToArabicWords(num){
-      let n = Math.round(num);
-      if(n===0) return "صفر ريال عماني";
-      const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
-      const teens = ["عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
-      const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
-      const hundreds = ["","مائة","مائتان","ثلاثمائة","أربعمائة","خمسمائة","ستمائة","سبعمائة","ثمانمائة","تسعمائة"];
+    renderPriceTable();
+    renderIncidents();
+  }
 
-      function convertBelowThousand(num){
-        let parts=[]; let h=Math.floor(num/100); let t=Math.floor((num%100)/10); let u=num%10;
-        if(h>0) parts.push(hundreds[h]);
-        if(num%100<10){ if(u>0) parts.push(ones[u]); }
-        else if(num%100<20){ parts.push(teens[num%100-10]); }
-        else { if(u>0) parts.push(ones[u]); if(t>1) parts.push(tens[t]); }
-        return parts.join(' و ');
+  // --- تفقيط المبالغ ---
+  function numberToArabicWords(num){
+    let n = Math.round(num);
+    if(n===0) return "صفر ريال عماني";
+    const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
+    const teens = ["عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
+    const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
+    const hundreds = ["","مائة","مائتان","ثلاثمائة","أربعمائة","خمسمائة","ستمائة","سبعمائة","ثمانمائة","تسعمائة"];
+
+    function convertBelowThousand(num){
+      let parts=[]; let h=Math.floor(num/100); let t=Math.floor((num%100)/10); let u=num%10;
+      if(h>0) parts.push(hundreds[h]);
+      if(num%100<10){ if(u>0) parts.push(ones[u]); }
+      else if(num%100<20){ parts.push(teens[num%100-10]); }
+      else { if(u>0) parts.push(ones[u]); if(t>1) parts.push(tens[t]); }
+      return parts.join(' و ');
+    }
+
+    let words=[];
+    const scales = [{value:1_000_000,name:"مليون",plural:"ملايين"}, {value:1000,name:"ألف",plural:"آلاف"}, {value:1,name:"",plural:""}];
+    for(let s of scales){
+      if(n>=s.value){
+        let chunk=Math.floor(n/s.value); n%=s.value;
+        if(chunk===1) words.push(s.name);
+        else if(chunk===2) words.push("" + s.name + "ان");
+        else words.push(convertBelowThousand(chunk)+" "+(chunk<=10?s.plural:s.plural));
       }
-
-      let words=[];
-      const scales = [{value:1_000_000,name:"مليون",plural:"ملايين"}, {value:1000,name:"ألف",plural:"آلاف"}, {value:1,name:"",plural:""}];
-      for(let s of scales){
-        if(n>=s.value){
-          let chunk=Math.floor(n/s.value); n%=s.value;
-          if(chunk===1) words.push(s.name);
-          else if(chunk===2) words.push("" + s.name + "ان");
-          else words.push(convertBelowThousand(chunk)+" "+(chunk<=10?s.plural:s.plural));
-        }
-      }
-      return words.join(' و ')+" ريال عماني";
     }
+    return words.join(' و ')+" ريال عماني";
+  }
 
-    function renderCompOptions(filter=''){
-      const filtered = prices.filter(p=>p.name.includes(filter));
-      compSelect.innerHTML = filtered.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-      updateUnitOnSelect();
-    }
+  function renderCompOptions(filter=''){
+    const filtered = prices.filter(p=>p.name.includes(filter));
+    compSelect.innerHTML = filtered.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    updateUnitOnSelect();
+  }
 
-    function renderPriceTable(){
-      priceTableBody.innerHTML='';
-      prices.forEach(p=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${p.name}</td>
-          <td>${p.unit}</td>
-          <td><input data-id="${p.id}" class="priceInput" value="${p.price}" style="width:70px; padding:3px 6px;"></td>
-          <td><button class="btn btn-danger btn-sm delPrice" data-id="${p.id}">×</button></td>
-        `;
-        priceTableBody.appendChild(tr);
-      });
-      renderCompOptions(compSearch.value);
-    }
+  function renderPriceTable(){
+    priceTableBody.innerHTML='';
+    prices.forEach(p=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${p.name}</td>
+        <td>${p.unit}</td>
+        <td><input data-id="${p.id}" class="priceInput" value="${p.price}" style="width:70px; padding:3px 6px;"></td>
+        <td><button class="btn btn-danger btn-sm delPrice" data-id="${p.id}">×</button></td>
+      `;
+      priceTableBody.appendChild(tr);
+    });
+    renderCompOptions(compSearch.value);
+  }
 
-    function renderIncidents(){
-      incTableBody.innerHTML='';
-      let total=0;
-      incidents.forEach((it,idx)=>{
-        const rowTotal=(it.qty*it.price);
-        total+=rowTotal;
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td><strong>${it.name}</strong></td>
-          <td>${it.qty} ${it.unit}</td>
-          <td>${it.price.toFixed(3)}</td>
-          <td style="font-weight:600">${rowTotal.toFixed(3)}</td>
-          <td><button class="btn btn-danger btn-sm delInc" data-idx="${idx}">حذف</button></td>
-        `;
-        incTableBody.appendChild(tr);
-      });
-      grandTotalEl.textContent=total.toFixed(3);
-      document.getElementById('totalWords').textContent=numberToArabicWords(total);
-    }
+  function renderIncidents(){
+    incTableBody.innerHTML='';
+    let total=0;
+    incidents.forEach((it,idx)=>{
+      const rowTotal=(it.qty*it.price);
+      total+=rowTotal;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><strong>${it.name}</strong></td>
+        <td>${it.qty} ${it.unit}</td>
+        <td>${it.price.toFixed(3)}</td>
+        <td style="font-weight:600">${rowTotal.toFixed(3)}</td>
+        <td><button class="btn btn-danger btn-sm delInc" data-idx="${idx}">حذف</button></td>
+      `;
+      incTableBody.appendChild(tr);
+    });
+    grandTotalEl.textContent=total.toFixed(3);
+    document.getElementById('totalWords').textContent=numberToArabicWords(total);
+  }
 
-    function updateUnitOnSelect(){
-      const sel=prices.find(p=>p.id===compSelect.value);
-      unitInput.value=sel?sel.unit:'';
-    }
+  function updateUnitOnSelect(){
+    const sel=prices.find(p=>p.id===compSelect.value);
+    unitInput.value=sel?sel.unit:'';
+  }
 
-    // --- أحداث الإدخال والحفظ ---
-    compSearch.addEventListener('input',()=>{ renderCompOptions(compSearch.value); });
-    compSelect.addEventListener('change',updateUnitOnSelect);
+  // --- أحداث الإدخال والحفظ ---
+  compSearch.addEventListener('input',()=>{ renderCompOptions(compSearch.value); });
+  compSelect.addEventListener('change',updateUnitOnSelect);
 
-    addBtn.addEventListener('click',()=>{
+  addBtn.addEventListener('click',()=>{
+    if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
+    const comp=prices.find(p=>p.id===compSelect.value);
+    const qty=parseFloat(qtyInput.value)||0;
+    if(!comp || qty<=0) return alert('يرجى اختيار مكوّن وإدخال كمية صحيحة');
+    
+    incidents.push({id:uid(),code:comp.id,name:comp.name,unit:comp.unit,qty:qty,price:Number(comp.price)});
+    saveToCloud(); renderIncidents();
+  });
+
+  clearBtn.addEventListener('click',()=>{ qtyInput.value=1; });
+
+  priceTableBody.addEventListener('click',(e)=>{
+    if(e.target.classList.contains('delPrice')){
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-      const comp=prices.find(p=>p.id===compSelect.value);
-      const qty=parseFloat(qtyInput.value)||0;
-      if(!comp || qty<=0) return alert('اختر مكوّن وادخل كمية صحيحة');
-      
-      incidents.push({id:uid(),code:comp.id,name:comp.name,unit:comp.unit,qty:qty,price:Number(comp.price)});
-      saveToCloud(); renderIncidents();
-    });
-
-    clearBtn.addEventListener('click',()=>{ qtyInput.value=1; });
-
-    priceTableBody.addEventListener('click',(e)=>{
-      if(e.target.classList.contains('delPrice')){
-        if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-        const id=e.target.dataset.id;
-        if(confirm('حذف البند من القائمة السحابية؟')){
-          prices=prices.filter(p=>p.id!==id);
-          saveToCloud(); renderPriceTable();
-        }
+      const id=e.target.dataset.id;
+      if(confirm('حذف البند من القائمة؟')){
+        prices=prices.filter(p=>p.id!==id);
+        saveToCloud(); renderPriceTable();
       }
-    });
+    }
+  });
 
-    priceTableBody.addEventListener('input',(e)=>{
-      if(e.target.classList.contains('priceInput')){
-        const id=e.target.dataset.id;
-        const p=prices.find(x=>x.id===id); 
-        if(p){ p.price=parseFloat(e.target.value)||0; }
-      }
-    });
+  priceTableBody.addEventListener('input',(e)=>{
+    if(e.target.classList.contains('priceInput')){
+      const id=e.target.dataset.id;
+      const p=prices.find(x=>x.id===id); 
+      if(p){ p.price=parseFloat(e.target.value)||0; }
+    }
+  });
 
-    addPriceBtn.addEventListener('click',()=>{
+  addPriceBtn.addEventListener('click',()=>{
+    if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
+    const name=prompt('اسم المكوّن الجديد:'); if(!name) return;
+    const unit=prompt('وحدة القياس:')||'عدد';
+    const price=parseFloat(prompt('سعر الوحدة:')||'0')||0;
+    prices.push({id:uid(),name,unit,price}); saveToCloud(); renderPriceTable();
+  });
+
+  savePricesBtn.addEventListener('click',()=>{ 
+    if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!'); 
+    saveToCloud(); 
+  });
+
+  modeSelect.addEventListener('change',()=>{ 
+    readonlyNote.style.display=modeSelect.value==='readonly'?'flex':'none'; 
+    saveToCloud(); 
+  });
+
+  incTableBody.addEventListener('click',(e)=>{
+    if(e.target.classList.contains('delInc')){
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-      const name=prompt('اسم المكوّن الجديد:'); if(!name) return;
-      const unit=prompt('وحدة القياس:')||'عدد';
-      const price=parseFloat(prompt('سعر الوحدة:')||'0')||0;
-      prices.push({id:uid(),name,unit,price}); saveToCloud(); renderPriceTable();
-    });
+      const idx=Number(e.target.dataset.idx);
+      if(confirm('حذف هذا العنصر؟')){ incidents.splice(idx,1); saveToCloud(); renderIncidents(); }
+    }
+  });
 
-    savePricesBtn.addEventListener('click',()=>{ 
-      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!'); 
-      saveToCloud(); 
-    });
-
-    modeSelect.addEventListener('change',()=>{ 
-      readonlyNote.style.display=modeSelect.value==='readonly'?'flex':'none'; 
-      saveToCloud(); 
-    });
-
-    incTableBody.addEventListener('click',(e)=>{
-      if(e.target.classList.contains('delInc')){
-        if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-        const idx=Number(e.target.dataset.idx);
-        if(confirm('حذف هذا العنصر؟')){ incidents.splice(idx,1); saveToCloud(); renderIncidents(); }
-      }
-    });
-
-    reportName.addEventListener('change', saveToCloud);
-
-    // --- تشغيل وجلب البيانات عند فتح الموقع ---
-    loadFromCloud();
-  </script>
+  // التشغيل التلقائي عند التحميل
+  document.addEventListener('DOMContentLoaded', loadFromCloud);
+</script>
 </body>
 </html>
