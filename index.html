@@ -1,419 +1,313 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>نظام تقييم أضرار أصول الطرق - النسخة السحابية</title>
-  
-  <!-- خط القاهرة الرسمي -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- مكتبة Supabase للتخزين السحابي -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام حصر وتثمين أضرار الطرق</title>
   <style>
     :root {
-      --primary: #1e3a8a;       /* أزرق كحلي حكومي */
-      --primary-dark: #0f172a;  
-      --accent: #d97706;        /* ذهبي مائل للنحاسي */
-      --bg: #f8fafc;            
+      --primary: #1e3a8a;
+      --secondary: #0284c7;
+      --bg: #f8fafc;
       --card-bg: #ffffff;
-      --text: #334155;
-      --text-dark: #0f172a;
+      --text: #1e293b;
       --border: #e2e8f0;
-      --danger: #dc2626;
-      --radius: 8px;
+      --danger: #ef4444;
+      --success: #10b981;
     }
 
-    * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: 'Cairo', sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       background-color: var(--bg);
       color: var(--text);
-      font-size: 14px;
-      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
     }
 
-    /* الشريط العلوي الحكومي */
-    .gov-header {
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-      color: #fff;
-      padding: 1rem 2rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      border-bottom: 4px solid var(--accent);
-    }
-    .gov-header-container {
-      max-width: 1280px;
+    .container {
+      max-width: 1100px;
       margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon {
-      width: 42px; height: 42px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; border: 1px solid rgba(255,255,255,0.2);
-    }
-    .brand h1 { margin: 0; font-size: 1.25rem; font-weight: 700; color: #fff; }
-    .brand p { margin: 0; font-size: 0.8rem; color: #cbd5e1; }
-    
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .status-online { background: #10b981; color: #fff; }
-    .status-syncing { background: #f59e0b; color: #fff; }
-
-    /* المحتوى الرئيسي */
-    .main-wrapper { max-width: 1280px; margin: 24px auto; padding: 0 20px; }
-    .grid-container {
       display: grid;
       grid-template-columns: 1fr 340px;
       gap: 20px;
-      align-items: start;
     }
 
-    @media (max-width: 992px) { .grid-container { grid-template-columns: 1fr; } }
+    @media (max-width: 850px) {
+      .container { grid-template-columns: 1fr; }
+    }
 
-    /* البطاقات */
     .card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
       padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
       margin-bottom: 20px;
     }
-    .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 16px; border-bottom: 2px solid var(--bg); padding-bottom: 10px;
-    }
-    .card-title {
-      font-size: 1.05rem; font-weight: 700; color: var(--primary);
-      margin: 0; display: flex; align-items: center; gap: 8px;
+
+    h1, h2, h3 { margin-top: 0; color: var(--primary); }
+    
+    .form-group {
+      margin-bottom: 15px;
     }
 
-    /* أشكال المدخلات */
-    .form-group { margin-bottom: 14px; }
-    .form-row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
-    input, select, textarea {
-      width: 100%; padding: 9px 12px;
-      border: 1px solid var(--border); border-radius: 6px;
-      font-family: inherit; font-size: 0.9rem; color: var(--text-dark); background-color: #fff;
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 0.9em;
     }
-    input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
-    input[readonly] { background-color: #f1f5f9; color: #64748b; }
 
-    /* الأزرار */
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 0.95em;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
     .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 9px 16px; border-radius: 6px; font-family: inherit;
-      font-size: 0.875rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; gap: 6px;
-    }
-    .btn-primary { background-color: var(--primary); color: #fff; }
-    .btn-primary:hover { background-color: #1e40af; }
-    .btn-secondary { background-color: #fff; color: var(--text-dark); border-color: var(--border); }
-    .btn-secondary:hover { background-color: #f8fafc; }
-    .btn-danger { background-color: #fef2f2; color: var(--danger); border-color: #fecaca; }
-    .btn-danger:hover { background-color: var(--danger); color: #fff; }
-    .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
-
-    /* الجداول */
-    .table-responsive { overflow-x: auto; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; text-align: right; }
-    th { background-color: #f8fafc; color: var(--text-dark); font-weight: 700; padding: 10px 12px; border-bottom: 2px solid var(--border); font-size: 0.85rem; }
-    td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
-    tfoot td { background-color: #f8fafc; font-weight: 700; border-top: 2px solid var(--border); }
-
-    .readonly-banner {
-      background-color: #fffbeeb3; border: 1px solid #fde68a; color: #b45309;
-      padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; margin-top: 10px; display: flex; align-items: center; gap: 6px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: opacity 0.2s;
     }
 
-    footer { text-align: center; padding: 20px; color: #64748b; font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 40px; }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--secondary); }
+    .btn-danger { background: var(--danger); width: auto; padding: 4px 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: right;
+    }
+
+    th { background: #f1f5f9; }
+
+    .total-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .total-amount {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .badge-local {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      display: inline-block;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- هيدر النظام -->
-  <header class="gov-header">
-    <div class="gov-header-container">
-      <div class="brand">
-        <div class="brand-icon">🛣️</div>
-        <div>
-          <h1>نظام تقييم ومحاسبة أضرار أصول الطرق</h1>
-          <p>منصة حصر التكلفة وإصدار التقارير الميدانية - النسخة السحابية</p>
-        </div>
-      </div>
-      <div>
-        <span id="cloudStatus" class="status-badge status-online">🟢 متصل بقاعدة البيانات السحابية</span>
-      </div>
-    </div>
-  </header>
+<div style="max-width: 1100px; margin: 0 auto 10px;">
+  <span class="badge-local">💻 تعمل اللائحة محلياً بدون سيرفر</span>
+</div>
 
-  <div class="main-wrapper">
-    <div class="grid-container">
+<div class="container">
+  
+  <!-- القسم الرئيسي: حصر الأضرار والتقرير -->
+  <div>
+    <div class="card">
+      <h2>📝 حصر أضرار الطريق</h2>
       
-      <!-- القسم الرئيسي -->
-      <main>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">📌 تسجيل تلفيات / حادث جديد</h2>
-          </div>
+      <div class="form-group">
+        <label>عنوان التقرير / اسم الطريق:</label>
+        <input type="text" id="reportName" placeholder="مثال: أضرار طريق البريمي - المحضة">
+      </div>
 
-          <div class="form-group">
-            <label>البحث السريع عن المكوّن الضرر</label>
-            <input id="compSearch" type="text" placeholder="ابحث باسم المكون (أسفلت، لوحة، رصيف)...">
-          </div>
-
-          <div class="form-group">
-            <label>اختيار المكوّن</label>
-            <select id="compSelect"></select>
-          </div>
-
-          <div class="form-row form-group">
-            <div>
-              <label>الكمية المتضررة</label>
-              <input id="qty" type="number" min="0" step="0.01" value="1">
-            </div>
-            <div>
-              <label>وحدة القياس</label>
-              <input id="unit" readonly>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button id="addBtn" class="btn btn-primary">إضافة للقائمة السحابية</button>
-            <button id="clearBtn" class="btn btn-secondary">تفريغ الحقول</button>
-          </div>
+      <div class="row">
+        <div class="form-group" style="flex: 2;">
+          <label>اختر المكوّن:</label>
+          <select id="compSelect"></select>
         </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">📝 بيان التلفيات المسجلة في الحادث</h2>
-          </div>
-
-          <div class="table-responsive">
-            <table id="incTable">
-              <thead>
-                <tr>
-                  <th>المكوّن الضرر</th>
-                  <th>الكمية</th>
-                  <th>سعر الوحدة (ر.ع)</th>
-                  <th>الإجمالي (ر.ع)</th>
-                  <th style="width: 50px;"></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3" style="text-align: left;">الإجمالي الكلي:</td>
-                  <td id="grandTotal" style="color: var(--primary); font-size: 1.1rem;">0.000</td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td colspan="5" style="color: #64748b; font-weight: normal;">
-                    <strong>المبلغ إجمالاً بالأحرف:</strong> <span id="totalWords" style="color: var(--text-dark); font-weight: 600;">صفر ريال عماني</span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <button id="exportPdf" class="btn btn-primary">🖨️ طباعة / حفظ التقرير (PDF)</button>
-            <button id="exportCsv" class="btn btn-secondary">📊 تصدير Excel (CSV)</button>
-            <button id="resetAll" class="btn btn-danger" style="margin-right: auto;">إعادة ضبط البيانات</button>
-          </div>
+        <div class="form-group" style="flex: 1;">
+          <label>الكمية:</label>
+          <input type="number" id="qty" value="1" min="0.1" step="any">
         </div>
-      </main>
+      </div>
 
-      <!-- الشريط الجانبي -->
-      <aside>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">⚙️ بيانات التقرير والتحكم</h2>
-          </div>
-          
-          <div class="form-group">
-            <label>بيانات / اسم الحادث</label>
-            <input id="reportName" placeholder="مثال: حادث طريق خط الباطنة السريع - موقع 4">
-          </div>
+      <button class="btn" id="addBtn">➕ إضافة للبند الحصر</button>
 
-          <div class="form-group">
-            <label>وضع النظام</label>
-            <select id="mode">
-              <option value="edit">تحرير وإدارة (كامل الصلاحيات)</option>
-              <option value="readonly">قراءة فقط (عرض وتصدير)</option>
-            </select>
-          </div>
-          <div class="readonly-banner" id="readonlyNote" style="display:none">
-            🔒 وضع القراءة فقط مفعل (لا يمكن الحذف أو التعديل).
-          </div>
-        </div>
+      <table>
+        <thead>
+          <tr>
+            <th>المكوّن</th>
+            <th>الكمية</th>
+            <th>سعر الوحدة</th>
+            <th>الإجمالي</th>
+            <th>إجراء</th>
+          </tr>
+        </thead>
+        <tbody id="incTableBody"></tbody>
+      </table>
 
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">🏷️ لائحة أسعار الأصول السحابية</h2>
-          </div>
-
-          <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-            <table id="priceTable">
-              <thead>
-                <tr>
-                  <th>المكوّن</th>
-                  <th>الوحدة</th>
-                  <th>السعر</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div style="margin-top: 12px; display: flex; gap: 8px;">
-            <button id="addPrice" class="btn btn-secondary btn-sm" style="flex:1;">+ مكوّن جديد</button>
-            <button id="savePrices" class="btn btn-primary btn-sm">حفظ الأسعار للسيرفر</button>
-          </div>
-        </div>
-      </aside>
-
+      <div class="total-box">
+        <div>المبلغ الإجمالي المالي:</div>
+        <div class="total-amount"><span id="grandTotal">0.000</span> ر.ع.</div>
+        <div id="totalWords" style="font-size: 0.9em; color: #475569; margin-top: 5px;"></div>
+      </div>
     </div>
   </div>
 
-  <footer>
-    الجمهورية / السلطنة — نظام حصر وتثمين أضرار أصول الطرق والمنشآت العامة © 2026
-  </footer>
+  <!-- الشريط الجانبي: إدارة المكونات والأسعار -->
+  <div>
+    <div class="card">
+      <h3>⚙️ قائمة المكونات والأسعار</h3>
+      <p style="font-size: 0.8em; color: #64748b;">تستطيع إضافة وتعديل المكونات من الكود مباشرة أو عبر النموذج أدناه:</p>
 
- <script>
-  // --- 1. إعدادات Supabase ---
-  const SUPABASE_URL = 'https://dhiohjbybstgerdeaion.supabase.co'; // ضع رابطك هنا
-  const SUPABASE_KEY = 'sb_publishable_mRcLCOywSpovudXdMOBNng_Lhxf2Zzv';                         // ضع مفتاحك هنا
-  
-  let supabase = null;
-  try {
-    if (typeof supabase !== 'undefined' && SUPABASE_URL.includes('supabase.co')) {
-      supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    }
-  } catch (e) {
-    console.warn("لم يتم إعداد Supabase بالشكل الصحيح، سيعمل النظام محلياً.");
-  }
+      <table>
+        <thead>
+          <tr>
+            <th>المكوّن</th>
+            <th>الوحدة</th>
+            <th>السعر</th>
+          </tr>
+        </thead>
+        <tbody id="priceTableBody"></tbody>
+      </table>
+    </div>
+  </div>
 
-  // --- البيانات الافتراضية (تظهر دائماً لضمان عمل الصفحة) ---
-  const DEFAULT_PRICES = [
-    {id: 'asphalt', name: 'الطبقة الأسفلتية (م٢)', unit: 'متر مربع', price: 2.500},
-    {id: 'aggregate', name: 'ردم وحصى (م٣)', unit: 'متر مكعب', price: 9.000},
-    {id: 'shoulder', name: 'أكتاف الطريق (م طولي)', unit: 'متر طولي', price: 5.000},
-    {id: 'drain', name: 'قناة تصريف (م)', unit: 'متر', price: 12.000},
-    {id: 'sign', name: 'لوحة إرشادية/تحذيرية', unit: 'عدد', price: 40.000}
+</div>
+
+<script>
+  // =========================================================================
+  // ➕ 🛠️ التعديل المباشر: أضف أو عدّل المكونات والأسعار هنا من الكود مباشرة
+  // =========================================================================
+  const LOCAL_PRICES = [
+    { id: 'asphalt',   name: 'الطبقة الأسفلتية (م٢)', unit: 'متر مربع', price: 2.500 },
+    { id: 'aggregate', name: 'ردم وحصى (م٣)',         unit: 'متر مكعب', price: 9.000 },
+    { id: 'shoulder',  name: 'أكتاف الطريق (م طولي)', unit: 'متر طولي', price: 5.000 },
+    { id: 'drain',     name: 'قناة تصريف (م)',        unit: 'متر',       price: 12.000 },
+    { id: 'sign',      name: 'لوحة إرشادية/تحذيرية', unit: 'عدد',       price: 40.000 },
+    
+    // ⬇️ يمكنك إضافة مكونات جديدة تحت هذا السطر بنفس التنسيق:
+    // { id: 'curb', name: 'بردورة رصيف', unit: 'متر طولي', price: 3.500 },
   ];
 
-  // --- عناصر DOM ---
-  const compSelect = document.getElementById('compSelect');
-  const compSearch = document.getElementById('compSearch');
-  const unitInput = document.getElementById('unit');
-  const qtyInput = document.getElementById('qty');
-  const addBtn = document.getElementById('addBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const incTableBody = document.querySelector('#incTable tbody');
-  const grandTotalEl = document.getElementById('grandTotal');
-  const priceTableBody = document.querySelector('#priceTable tbody');
-  const addPriceBtn = document.getElementById('addPrice');
-  const savePricesBtn = document.getElementById('savePrices');
-  const modeSelect = document.getElementById('mode');
-  const readonlyNote = document.getElementById('readonlyNote');
-  const reportName = document.getElementById('reportName');
-  const cloudStatus = document.getElementById('cloudStatus');
-
-  let prices = [...DEFAULT_PRICES];
+  // Variables
   let incidents = [];
 
-  const uid = () => Math.random().toString(36).slice(2,9);
+  // DOM Elements
+  const compSelect = document.getElementById('compSelect');
+  const qtyInput = document.getElementById('qty');
+  const addBtn = document.getElementById('addBtn');
+  const incTableBody = document.getElementById('incTableBody');
+  const priceTableBody = document.getElementById('priceTableBody');
+  const grandTotalEl = document.getElementById('grandTotal');
+  const totalWordsEl = document.getElementById('totalWords');
 
-  // --- الحفظ والقراءة السحابية آمنة الحماية ---
-  async function saveToCloud() {
-    if (!supabase) return;
-    cloudStatus.className = 'status-badge status-syncing';
-    cloudStatus.textContent = '⏳ جاري الحفظ...';
+  // 1. عرض جدول الأسعار والخيارات
+  function initPrices() {
+    compSelect.innerHTML = '';
+    priceTableBody.innerHTML = '';
 
-    try {
-      const payload = {
-        id: 1,
-        prices: prices,
-        incidents: incidents,
-        report_name: reportName.value,
-        mode: modeSelect.value,
-        updated_at: new Date()
-      };
+    LOCAL_PRICES.forEach(item => {
+      // ملء القائمة المنسدلة
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = `${item.name} (${item.price.toFixed(3)} ر.ع)`;
+      compSelect.appendChild(opt);
 
-      const { error } = await supabase.from('road_damage_data').upsert([payload]);
-
-      if (error) throw error;
-      cloudStatus.className = 'status-badge status-online';
-      cloudStatus.textContent = '🟢 تم الحفظ سحابياً بنجاح';
-    } catch (err) {
-      console.error('Cloud save error:', err);
-      cloudStatus.className = 'status-badge';
-      cloudStatus.style.background = '#ef4444';
-      cloudStatus.textContent = '⚠️ خطأ في الاتصال بالسيرفر (حفظ محلي)';
-    }
+      // ملء جدول الأسعار الجانبي
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td>${item.unit}</td>
+        <td><strong>${item.price.toFixed(3)}</strong></td>
+      `;
+      priceTableBody.appendChild(tr);
+    });
   }
 
-  async function loadFromCloud() {
-    // تحميل افتراضي أولي لضمان ظهور المكونات فوراً
-    prices = [...DEFAULT_PRICES];
-    renderPriceTable();
-    renderIncidents();
+  // 2. إضافة بند للأضرار
+  addBtn.addEventListener('click', () => {
+    const selectedId = compSelect.value;
+    const qty = parseFloat(qtyInput.value) || 0;
+    const comp = LOCAL_PRICES.find(p => p.id === selectedId);
 
-    if (!supabase) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('road_damage_data')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
-
-      if (data) {
-        if (data.prices && data.prices.length > 0) prices = data.prices;
-        incidents = data.incidents || [];
-        reportName.value = data.report_name || '';
-        modeSelect.value = data.mode || 'edit';
-        cloudStatus.className = 'status-badge status-online';
-        cloudStatus.textContent = '🟢 متصل بقاعدة البيانات السحابية';
-      }
-    } catch (err) {
-      console.warn('استخدام البيانات الافتراضية لعدم توفر السيرفر حالياً');
+    if (!comp || qty <= 0) {
+      alert('يرجى ادخال كمية صحيحة');
+      return;
     }
 
-    renderPriceTable();
+    incidents.push({
+      name: comp.name,
+      unit: comp.unit,
+      qty: qty,
+      price: comp.price
+    });
+
+    renderIncidents();
+  });
+
+  // 3. عرض جدول الأضرار والحسابات
+  function renderIncidents() {
+    incTableBody.innerHTML = '';
+    let total = 0;
+
+    incidents.forEach((item, index) => {
+      const rowTotal = item.qty * item.price;
+      total += rowTotal;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td>${item.qty} ${item.unit}</td>
+        <td>${item.price.toFixed(3)}</td>
+        <td><strong>${rowTotal.toFixed(3)}</strong></td>
+        <td><button class="btn btn-danger" onclick="deleteIncident(${index})">✕</button></td>
+      `;
+      incTableBody.appendChild(tr);
+    });
+
+    grandTotalEl.textContent = total.toFixed(3);
+    totalWordsEl.textContent = numberToArabicWords(total);
+  }
+
+  function deleteIncident(index) {
+    incidents.splice(index, 1);
     renderIncidents();
   }
 
-  // --- تفقيط المبالغ ---
-  function numberToArabicWords(num){
+  // 4. تفقيط المبالغ
+  function numberToArabicWords(num) {
     let n = Math.round(num);
-    if(n===0) return "صفر ريال عماني";
+    if (n === 0) return "صفر ريال عماني";
     const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
     const teens = ["عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
     const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
     const hundreds = ["","مائة","مائتان","ثلاثمائة","أربعمائة","خمسمائة","ستمائة","سبعمائة","ثمانمائة","تسعمائة"];
 
-    function convertBelowThousand(num){
+    function convertBelowThousand(num) {
       let parts=[]; let h=Math.floor(num/100); let t=Math.floor((num%100)/10); let u=num%10;
       if(h>0) parts.push(hundreds[h]);
       if(num%100<10){ if(u>0) parts.push(ones[u]); }
@@ -423,127 +317,20 @@
     }
 
     let words=[];
-    const scales = [{value:1_000_000,name:"مليون",plural:"ملايين"}, {value:1000,name:"ألف",plural:"آلاف"}, {value:1,name:"",plural:""}];
+    const scales = [{value:1000000,name:"مليون"}, {value:1000,name:"ألف"}, {value:1,name:""}];
     for(let s of scales){
       if(n>=s.value){
         let chunk=Math.floor(n/s.value); n%=s.value;
-        if(chunk===1) words.push(s.name);
-        else if(chunk===2) words.push("" + s.name + "ان");
-        else words.push(convertBelowThousand(chunk)+" "+(chunk<=10?s.plural:s.plural));
+        if(chunk===1 && s.name) words.push(s.name);
+        else words.push(convertBelowThousand(chunk)+" "+s.name);
       }
     }
     return words.join(' و ')+" ريال عماني";
   }
 
-  function renderCompOptions(filter=''){
-    const filtered = prices.filter(p=>p.name.includes(filter));
-    compSelect.innerHTML = filtered.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-    updateUnitOnSelect();
-  }
-
-  function renderPriceTable(){
-    priceTableBody.innerHTML='';
-    prices.forEach(p=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td>${p.name}</td>
-        <td>${p.unit}</td>
-        <td><input data-id="${p.id}" class="priceInput" value="${p.price}" style="width:70px; padding:3px 6px;"></td>
-        <td><button class="btn btn-danger btn-sm delPrice" data-id="${p.id}">×</button></td>
-      `;
-      priceTableBody.appendChild(tr);
-    });
-    renderCompOptions(compSearch.value);
-  }
-
-  function renderIncidents(){
-    incTableBody.innerHTML='';
-    let total=0;
-    incidents.forEach((it,idx)=>{
-      const rowTotal=(it.qty*it.price);
-      total+=rowTotal;
-      const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td><strong>${it.name}</strong></td>
-        <td>${it.qty} ${it.unit}</td>
-        <td>${it.price.toFixed(3)}</td>
-        <td style="font-weight:600">${rowTotal.toFixed(3)}</td>
-        <td><button class="btn btn-danger btn-sm delInc" data-idx="${idx}">حذف</button></td>
-      `;
-      incTableBody.appendChild(tr);
-    });
-    grandTotalEl.textContent=total.toFixed(3);
-    document.getElementById('totalWords').textContent=numberToArabicWords(total);
-  }
-
-  function updateUnitOnSelect(){
-    const sel=prices.find(p=>p.id===compSelect.value);
-    unitInput.value=sel?sel.unit:'';
-  }
-
-  // --- أحداث الإدخال والحفظ ---
-  compSearch.addEventListener('input',()=>{ renderCompOptions(compSearch.value); });
-  compSelect.addEventListener('change',updateUnitOnSelect);
-
-  addBtn.addEventListener('click',()=>{
-    if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-    const comp=prices.find(p=>p.id===compSelect.value);
-    const qty=parseFloat(qtyInput.value)||0;
-    if(!comp || qty<=0) return alert('يرجى اختيار مكوّن وإدخال كمية صحيحة');
-    
-    incidents.push({id:uid(),code:comp.id,name:comp.name,unit:comp.unit,qty:qty,price:Number(comp.price)});
-    saveToCloud(); renderIncidents();
-  });
-
-  clearBtn.addEventListener('click',()=>{ qtyInput.value=1; });
-
-  priceTableBody.addEventListener('click',(e)=>{
-    if(e.target.classList.contains('delPrice')){
-      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-      const id=e.target.dataset.id;
-      if(confirm('حذف البند من القائمة؟')){
-        prices=prices.filter(p=>p.id!==id);
-        saveToCloud(); renderPriceTable();
-      }
-    }
-  });
-
-  priceTableBody.addEventListener('input',(e)=>{
-    if(e.target.classList.contains('priceInput')){
-      const id=e.target.dataset.id;
-      const p=prices.find(x=>x.id===id); 
-      if(p){ p.price=parseFloat(e.target.value)||0; }
-    }
-  });
-
-  addPriceBtn.addEventListener('click',()=>{
-    if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-    const name=prompt('اسم المكوّن الجديد:'); if(!name) return;
-    const unit=prompt('وحدة القياس:')||'عدد';
-    const price=parseFloat(prompt('سعر الوحدة:')||'0')||0;
-    prices.push({id:uid(),name,unit,price}); saveToCloud(); renderPriceTable();
-  });
-
-  savePricesBtn.addEventListener('click',()=>{ 
-    if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!'); 
-    saveToCloud(); 
-  });
-
-  modeSelect.addEventListener('change',()=>{ 
-    readonlyNote.style.display=modeSelect.value==='readonly'?'flex':'none'; 
-    saveToCloud(); 
-  });
-
-  incTableBody.addEventListener('click',(e)=>{
-    if(e.target.classList.contains('delInc')){
-      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
-      const idx=Number(e.target.dataset.idx);
-      if(confirm('حذف هذا العنصر؟')){ incidents.splice(idx,1); saveToCloud(); renderIncidents(); }
-    }
-  });
-
-  // التشغيل التلقائي عند التحميل
-  document.addEventListener('DOMContentLoaded', loadFromCloud);
+  // التشغيل الأولي
+  initPrices();
 </script>
+
 </body>
 </html>
