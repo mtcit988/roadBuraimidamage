@@ -425,18 +425,74 @@
   </div>
 
   <footer>
-    الجمهورية / السلطنة — نظام حصر وتثمين أضرار أصول الطرق والمنشآت العامة © 2026
+    وزارة النقل والاتصالات وتقنية المعلومات - دائرة الطرق بمحافظة البريمي - سلطنة عمان © 2026
   </footer>
 
   <script>
     // --- البيانات الافتراضية ---
-    const DEFAULT_PRICES = [
-      {id: 'asphalt', name: 'الطبقة الأسفلتية (م٢)', unit: 'متر مربع', price: 2.500},
-      {id: 'aggregate', name: 'ردم وحصى (م٣)', unit: 'متر مكعب', price: 9.000},
-      {id: 'shoulder', name: 'أكتاف الطريق (م طولي)', unit: 'متر طولي', price: 5.000},
-      {id: 'drain', name: 'قناة تصريف (م)', unit: 'متر', price: 12.000},
-      {id: 'sign', name: 'لوحة إرشادية/تحذيرية', unit: 'عدد', price: 40.000}
-    ];
+   const DEFAULT_PRICES = [
+  // --- البنود الأساسية ---
+  {id: 'subgrade', name: 'طبقة الأساس المساعد (م٣)', unit: 'متر مكعب', price: 6.600},
+  {id: 'aggregate', name: 'طبقة الأساس الحصوي (م٣)', unit: 'متر مكعب', price: 8.500},
+  {id: 'prime_coat', name: 'طبقة التشريب (م٢)', unit: 'متر مربع', price: 0.400},
+  {id: 'asphalt_base', name: 'طبقة الأساس الإسفلتي (م٣)', unit: 'متر مكعب', price: 70.000},
+  {id: 'tack_coat', name: 'الطبقة اللاصقة', unit: 'متر مربع', price: 0.500},
+  {id: 'asphalt_surface', name: 'طبقة الأسفلت السطحية', unit: 'متر مكعب', price: 75.000},
+  {id: 'subbase', name: 'طبقة ما تحت الأساس', unit: 'متر مكعب', price: 5.000},
+
+  // --- أعمال الحفريات والقطع ---
+  {id: 'exc_normal', name: 'الحفر في الأرض العادية', unit: 'متر مكعب', price: 5.000},
+  {id: 'exc_soft_rock', name: 'الحفر في الأرض الصخرية اللينة', unit: 'متر مكعب', price: 10.000},
+  {id: 'exc_hard_rock', name: 'الحفر في الأرض الصخرية الصلبة', unit: 'متر مكعب', price: 15.000},
+  {id: 'asphalt_cut', name: 'قطع الأسفلت', unit: 'متر مربع', price: 4.000},
+
+  // --- اللوحات الإرشادية والتحذيرية ---
+  {id: 'tri_sign_600', name: 'لوحة مثلثة قطر 600 مليمتر', unit: 'عدد', price: 45.000},
+  {id: 'tri_sign_750', name: 'لوحة مثلثة قطر 750 مليمتر', unit: 'عدد', price: 52.500},
+  {id: 'tri_sign_900', name: 'لوحة مثلثة قطر 900 مليمتر', unit: 'عدد', price: 60.000},
+  {id: 'tri_sign_1000', name: 'لوحة مثلثة قطر 1000 مليمتر', unit: 'عدد', price: 75.000},
+  {id: 'tri_sign_1200', name: 'لوحة مثلثة قطر 1200 مليمتر', unit: 'عدد', price: 90.000},
+  {id: 'circ_sign_600', name: 'لوحة دائرية قطر 600 مليمتر', unit: 'عدد', price: 50.000},
+  {id: 'circ_sign_900', name: 'لوحة دائرية قطر 900 مليمتر', unit: 'عدد', price: 75.000},
+  {id: 'circ_sign_1000', name: 'لوحة دائرية قطر 1000 مليمتر', unit: 'عدد', price: 80.000},
+  {id: 'circ_sign_1200', name: 'لوحة دائرية قطر 1200 مليمتر', unit: 'عدد', price: 85.000},
+  {id: 'rect_sign', name: 'لوحة مستطيلة أو مربعة أو سهمية', unit: 'متر مربع', price: 70.000},
+  {id: 'gantry_sign_1', name: 'لوحات معلقة مع الإطار رقم 1', unit: 'متر مربع', price: 190.000},
+
+  // --- الأعمدة والقوائم ---
+  {id: 'gantry_post_2', name: 'عمود اللوحة المعلقة رقم 2', unit: 'متر طولي', price: 500.000},
+  {id: 'gantry_post_3', name: 'عمود اللوحة المعلقة رقم 3', unit: 'متر طولي', price: 250.000},
+  {id: 'pole_2in', name: 'عمود إشارة قطر 2 بوصة', unit: 'عدد', price: 30.000},
+  {id: 'pole_2_5in', name: 'عمود إشارة قطر 2.5 بوصة', unit: 'عدد', price: 40.000},
+  {id: 'pole_3in', name: 'عمود إشارة قطر 3 بوصة', unit: 'عدد', price: 60.000},
+  {id: 'pole_4in', name: 'عمود إشارة قطر 4 بوصة', unit: 'عدد', price: 80.000},
+  {id: 'pole_5in', name: 'عمود إشارة قطر 5 بوصة', unit: 'عدد', price: 90.000},
+  {id: 'pole_6in', name: 'عمود إشارة قطر 6 بوصة', unit: 'عدد', price: 100.000},
+  {id: 'pole_8in', name: 'عمود إشارة قطر 8 بوصة', unit: 'عدد', price: 120.000},
+
+  // --- تجهيزات معابر الطوارئ والمشاة ---
+  {id: 'emerg_posts', name: 'أعمدة معابر الطوارئ', unit: 'عدد', price: 25.000},
+  {id: 'emerg_chains', name: 'سلاسل حديدية لفتحات الطوارئ', unit: 'متر طولي', price: 4.000},
+  {id: 'irish_cross_reflector', name: 'أعمدة المعابر الإيرلندية شاملاً العاكس', unit: 'عدد', price: 75.000},
+  {id: 'irish_cross_30cm', name: 'أعمدة المعابر الإيرلندية بطول 30سم', unit: 'عدد', price: 32.000},
+
+  // --- الحواجز الواقية وملحقاتها ---
+  {id: 'guardrail_unit', name: 'الحاجز الواقي 3.81', unit: 'عدد', price: 57.150},
+  {id: 'guardrail_meter', name: 'الحاجز الواقي (م طولي)', unit: 'متر طولي', price: 15.000},
+  {id: 'ground_beam', name: 'الكمرة المثبتة في الأرض', unit: 'عدد', price: 50.000},
+  {id: 'end_shoe', name: 'نهاية الحاجز (كوع)', unit: 'عدد', price: 25.000},
+  {id: 'support_post', name: 'العمود الحامل (شامل الفاصل والمسامير)', unit: 'عدد', price: 25.000},
+  {id: 'pedestrian_guard_1', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 1', unit: 'متر طولي', price: 80.000},
+  {id: 'pedestrian_guard_2', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 2', unit: 'متر طولي', price: 140.000},
+
+  // --- ممتصات الصدمات والعواكس ---
+  {id: 'front_piece', name: 'القطعة الأمامية', unit: 'القطعة', price: 420.000},
+  {id: 'front_support_pipes', name: 'الداعم الأمامي (أنابيب)', unit: 'القطعة', price: 100.000},
+  {id: 'attenuator_belt_a', name: 'حزام امتصاص القوة نوع أ', unit: 'القطعة', price: 400.000},
+  {id: 'attenuator_belt_b', name: 'حزام امتصاص القوة نوع ب', unit: 'القطعة', price: 400.000},
+  {id: 'sliding_ring', name: 'شريحة الجانب الأمامي (الحلقة المتحركة)', unit: 'القطعة', price: 200.000},
+  {id: 'double_reflector', name: 'عاكس من الجهتين', unit: 'القطعة', price: 6.000}
+];
 
     // --- عناصر DOM ---
     const compSelect = document.getElementById('compSelect');
