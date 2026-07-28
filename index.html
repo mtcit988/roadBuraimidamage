@@ -95,7 +95,7 @@
 
     .grid-container {
       display: grid;
-      grid-template-columns: 1fr 340px;
+      grid-template-columns: 1fr 360px;
       gap: 20px;
       align-items: start;
     }
@@ -139,7 +139,7 @@
     }
     .form-row {
       display: grid;
-      grid-template-columns: 1fr 120px;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
     label {
@@ -277,7 +277,7 @@
       <div class="brand">
         <div class="brand-icon">🛣️</div>
         <div>
-          <h1>رواء - لإحتساب أضرار الطرق </h1>
+          <h1>رواء - لإحتساب أضرار الطرق</h1>
           <p>منصة حصر التكلفة وإصدار التقارير الميدانية</p>
         </div>
       </div>
@@ -368,15 +368,73 @@
 
       <!-- الشريط الجانبي للإعدادات -->
       <aside>
-        <!-- إعدادات التقرير والوضع -->
+        <!-- بطاقة إعدادات التقرير وبيانات إخطار الشرطة -->
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">⚙️ بيانات التقرير والتحكم</h2>
+            <h2 class="card-title">⚙️ بيانات إخطار الشرطة والحادث</h2>
           </div>
           
           <div class="form-group">
-            <label>بيانات / اسم الحادث</label>
-            <input id="reportName" placeholder="مثال: حادث طريق خط الباطنة السريع - موقع 4">
+            <label>رقم مرجع الشرطة / القضية</label>
+            <input id="policeRefNo" value="2026/أ/136256" placeholder="مثال: 136256/أ/2026">
+          </div>
+
+          <div class="form-group">
+            <label>جهة/مركز الشرطة</label>
+            <input id="policeStation" value="شرطة محضة" placeholder="مثال: شرطة محضة">
+          </div>
+
+          <div class="form-row form-group">
+            <div>
+              <label>تاريخ الإخطار</label>
+              <input id="policeNoticeDate" type="date" value="2026-07-26">
+            </div>
+            <div>
+              <label>تاريخ الحادث</label>
+              <input id="accidentDate" type="date" value="2026-07-25">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>موقع الحادث</label>
+            <input id="accidentLocation" value="الشارع العام محضة البريمي قبل جسر كحل" placeholder="الموقع بالتفصيل">
+          </div>
+
+          <div class="form-row form-group">
+            <div>
+              <label>اسم السائق</label>
+              <input id="driverName" value="نعيم علي" placeholder="اسم السائق">
+            </div>
+            <div>
+              <label>رقم المركبة</label>
+              <input id="vehicleNo" value="4961 ( ح م ) تجاري" placeholder="رقم المركبة ورمزها">
+            </div>
+          </div>
+
+          <div class="form-row form-group">
+            <div>
+              <label>شركة التأمين</label>
+              <input id="insuranceCompany" value="شركة ظفار للتأمين" placeholder="شركة التأمين">
+            </div>
+            <div>
+              <label>رقم الوثيقة</label>
+              <input id="policyNo" value="402/0502/2026" placeholder="رقم الوثيقة">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>الموجه إليه الخطاب (المدير)</label>
+            <input id="managerName" value="المهندس / عزان بن عبد الله بن سالم أمبو علي">
+          </div>
+
+          <div class="form-group">
+            <label>اسم المحرر / الموقّع</label>
+            <input id="signerName" value="فاطمة بنت علي بن عبدالله المنذرية">
+          </div>
+
+          <div class="form-group">
+            <label>المسمى الوظيفي للموقّع</label>
+            <input id="signerTitle" value="رئيسة قسم الشؤون الإدارية والمالية">
           </div>
 
           <div class="form-group">
@@ -415,9 +473,6 @@
             <button id="addPrice" class="btn btn-secondary btn-sm" style="flex:1;">+ مكوّن جديد</button>
             <button id="savePrices" class="btn btn-primary btn-sm">حفظ الأسعار</button>
           </div>
-          <p style="font-size: 0.75rem; color: #64748b; margin-top: 10px; margin-bottom:0;">
-            تُحفظ اللائحة تلقائياً بذاكرة متصفحك.
-          </p>
         </div>
       </aside>
 
@@ -428,7 +483,7 @@
     وزارة النقل والاتصالات وتقنية المعلومات - دائرة الطرق بمحافظة البريمي - سلطنة عمان © 2026
   </footer>
 
-  <script>
+ <script>
     // --- البيانات الافتراضية ---
    const DEFAULT_PRICES = [
   // --- البنود الأساسية ---
@@ -539,6 +594,7 @@
   {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
 ];
 
+
     // --- عناصر DOM ---
     const compSelect = document.getElementById('compSelect');
     const compSearch = document.getElementById('compSearch');
@@ -554,7 +610,6 @@
     const savePricesBtn = document.getElementById('savePrices');
     const modeSelect = document.getElementById('mode');
     const readonlyNote = document.getElementById('readonlyNote');
-    const reportName = document.getElementById('reportName');
     const exportCsvBtn = document.getElementById('exportCsv');
     const exportPdfBtn = document.getElementById('exportPdf');
     const resetAllBtn = document.getElementById('resetAll');
@@ -566,42 +621,43 @@
     const uid = () => Math.random().toString(36).slice(2,9);
 
     function saveToStorage(){
-      localStorage.setItem('roadPrices_v2', JSON.stringify(prices));
-      localStorage.setItem('roadIncidents_v2', JSON.stringify(incidents));
-      localStorage.setItem('roadMode_v2', modeSelect.value);
+      localStorage.setItem('roadPrices_v3', JSON.stringify(prices));
+      localStorage.setItem('roadIncidents_v3', JSON.stringify(incidents));
+      localStorage.setItem('roadMode_v3', modeSelect.value);
     }
 
     function loadFromStorage(){
       try{
-        prices = JSON.parse(localStorage.getItem('roadPrices_v2')) || DEFAULT_PRICES;
-        incidents = JSON.parse(localStorage.getItem('roadIncidents_v2')) || [];
-        const mode = localStorage.getItem('roadMode_v2') || 'edit';
+        prices = JSON.parse(localStorage.getItem('roadPrices_v3')) || DEFAULT_PRICES;
+        incidents = JSON.parse(localStorage.getItem('roadIncidents_v3')) || [];
+        const mode = localStorage.getItem('roadMode_v3') || 'edit';
         modeSelect.value = mode;
       }catch(e){ prices = DEFAULT_PRICES; incidents = []; }
     }
 
     // --- تحويل الرقم إلى كلمات عربية ---
     function numberToArabicWords(num){
-      let n = Math.round(num);
-      if(n===0) return "صفر ريال عماني";
+      let grandTotal = num;
+      let totalRial = Math.floor(grandTotal);
+      let totalBaisa = Math.round((grandTotal - totalRial) * 1000);
 
-      const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
-      const teens = ["عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
-      const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
-      const hundreds = ["","مائة","مائتان","ثلاثمائة","أربعمائة","خمسمائة","ستمائة","سبعمائة","ثمانمائة","تسعمائة"];
+      function convertBelowThousand(n){
+        const ones = ["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
+        const teens = ["عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر"];
+        const tens = ["","","عشرون","ثلاثون","أربعون","خمسون","ستون","سبعون","ثمانون","تسعون"];
+        const hundreds = ["","مائة","مائتان","ثلاثمائة","أربعمائة","خمسمائة","ستمائة","سبعمائة","ثمانمائة","تسعمائة"];
 
-      function convertBelowThousand(num){
         let parts=[];
-        let h=Math.floor(num/100);
-        let t=Math.floor((num%100)/10);
-        let u=num%10;
+        let h=Math.floor(n/100);
+        let t=Math.floor((n%100)/10);
+        let u=n%10;
 
         if(h>0) parts.push(hundreds[h]);
 
-        if(num%100<10){
+        if(n%100<10){
           if(u>0) parts.push(ones[u]);
-        } else if(num%100<20){
-          parts.push(teens[num%100-10]);
+        } else if(n%100<20){
+          parts.push(teens[n%100-10]);
         } else {
           if(u>0) parts.push(ones[u]);
           if(t>1) parts.push(tens[t]);
@@ -609,31 +665,45 @@
         return parts.join(' و ');
       }
 
-      let words=[];
-      const scales = [
-        {value:1_000_000,name:"مليون",plural:"ملايين"},
-        {value:1000,name:"ألف",plural:"آلاف"},
-        {value:1,name:"",plural:""}
-      ];
+      function getRialWords(n){
+        if(n===0) return "";
+        let words=[];
+        const scales = [
+          {value:1000000, name:"مليون", plural:"ملايين"},
+          {value:1000, name:"ألف", plural:"آلاف"},
+          {value:1, name:"", plural:""}
+        ];
 
-      for(let s of scales){
-        if(n>=s.value){
-          let chunk=Math.floor(n/s.value);
-          n%=s.value;
+        for(let s of scales){
+          if(n>=s.value){
+            let chunk=Math.floor(n/s.value);
+            n%=s.value;
 
-          if(chunk===1){
-            words.push(s.name);
-          } else if(chunk===2){
-            words.push("" + s.name + "ان");
-          } else if(chunk<=10){
-            words.push(convertBelowThousand(chunk)+" "+s.plural);
-          } else {
-            words.push(convertBelowThousand(chunk)+" "+s.plural);
+            if(chunk===1){
+              words.push(s.name);
+            } else if(chunk===2){
+              words.push(s.value===1 ? "ريالان" : s.name + "ان");
+            } else if(chunk<=10){
+              words.push(convertBelowThousand(chunk)+" "+s.plural);
+            } else {
+              words.push(convertBelowThousand(chunk)+" "+s.plural);
+            }
           }
         }
+        return words.join(' و ');
       }
 
-      return words.join(' و ')+" ريال عماني";
+      let res = "";
+      if(totalRial > 0){
+        res += getRialWords(totalRial) + " ريال عماني";
+      }
+
+      if(totalBaisa > 0){
+        if(res !== "") res += " و ";
+        res += convertBelowThousand(totalBaisa) + " بيسة";
+      }
+
+      return res || "صفر ريال عماني";
     }
 
     // --- عرض خيارات المكونات ---
@@ -677,7 +747,7 @@
         incTableBody.appendChild(tr);
       });
       grandTotalEl.textContent=total.toFixed(3);
-      document.getElementById('totalWords').textContent=numberToArabicWords(total);
+      document.getElementById('totalWords').textContent=numberToArabicWords(total) + " فقط لا غير";
     }
 
     function updateUnitOnSelect(){
@@ -750,91 +820,251 @@
 
     resetAllBtn.addEventListener('click',()=>{
       if(!confirm('⚠️ تحذير: ستتم إعادة ضبط جميع البيانات والأسعار للافتراضي. متابعة؟')) return;
-      localStorage.removeItem('roadPrices_v2'); 
-      localStorage.removeItem('roadIncidents_v2'); 
+      localStorage.removeItem('roadPrices_v3'); 
+      localStorage.removeItem('roadIncidents_v3'); 
       location.reload();
     });
 
     // تصدير CSV
     exportCsvBtn.addEventListener('click',()=>{
-      let csv='\uFEFF'; // UTF-8 BOM للغة العربية في Excel
+      let csv='\uFEFF';
       csv+='المكوّن الضرر,الكمية,وحدة القياس,سعر الوحدة (ر.ع),الإجمالي (ر.ع)\n';
       incidents.forEach(it=> csv+=`"${it.name}",${it.qty},"${it.unit}",${it.price},${(it.qty*it.price).toFixed(3)}\n`);
       downloadBlob(csv, `تقرير_أضرار_${(new Date()).toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
     });
 
-    // تصدير وطباعة تقرير PDF رسمي
-    exportPdfBtn.addEventListener('click',()=>{
-      const title=reportName.value || 'تقرير حصر أضرار الحوادث والتلفيات';
-      const dateStr = new Date().toLocaleDateString('ar-OM', { year: 'numeric', month: 'long', day: 'numeric' });
+    // دالة مساعدة لتنسيق التاريخ بدون انقلاب مع إضافة حرف م
+    function formatDateWithM(dateStr) {
+      if(!dateStr) return '';
+      const parts = dateStr.split('-');
+      if(parts.length === 3) {
+        return `${parts[0]}/${parts[1]}/${parts[2]}م`;
+      }
+      return dateStr + 'م';
+    }
+
+    // تصدير وطباعة تقرير PDF رسمية (تم تعديل التواريخ لتظهر مضبوطة مع حرف م)
+    exportPdfBtn.addEventListener('click', () => {
+      const policeRef = document.getElementById('policeRefNo').value || '2026/أ/136256';
+      const station = document.getElementById('policeStation').value || 'شرطة محضة';
       
-      let html=`
+      const rawNoticeDate = document.getElementById('policeNoticeDate').value || '2026-07-26';
+      const rawAccDate = document.getElementById('accidentDate').value || '2026-07-25';
+      
+      // التنسيق المضبوط للتواريخ مع حرف م
+      const noticeDateFormatted = formatDateWithM(rawNoticeDate);
+      const accDateFormatted = formatDateWithM(rawAccDate);
+
+      const location = document.getElementById('accidentLocation').value || 'الشارع العام محضة البريمي قبل جسر كحل';
+      const vehicle = document.getElementById('vehicleNo').value || '4961 ( ح م ) تجاري';
+      const driver = document.getElementById('driverName').value || 'نعيم علي';
+      const manager = document.getElementById('managerName').value || 'المهندس / عزان بن عبد الله بن سالم أمبو علي';
+      const signer = document.getElementById('signerName').value || 'فاطمة بنت علي بن عبدالله المنذرية';
+      const signerTitle = document.getElementById('signerTitle').value || 'رئيسة قسم الشؤون الإدارية والمالية';
+
+      // تاريخ اليوم مصحح من الاتجاهات المقلوبة مع إضافة حرف م
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const dateTodayStr = `${yyyy}/${mm}/${dd}م`;
+
+      let tableRows = '';
+      incidents.forEach((it, idx) => {
+        const rowTotal = (it.qty * it.price);
+        const totalRial = Math.floor(rowTotal);
+        const totalBaisa = Math.round((rowTotal - totalRial) * 1000);
+        
+        const unitPriceRial = Math.floor(it.price);
+        const unitPriceBaisa = Math.round((it.price - unitPriceRial) * 1000);
+
+        tableRows += `
+          <tr>
+            <td style="text-align: center;">${idx + 1}</td>
+            <td>${it.name}</td>
+            <td style="text-align: center;">${it.qty}</td>
+            <td style="text-align: center;">${String(unitPriceBaisa).padStart(3, '0')}</td>
+            <td style="text-align: center;">${unitPriceRial}</td>
+            <td style="text-align: center;">${String(totalBaisa).padStart(3, '0')}</td>
+            <td style="text-align: center;">${totalRial}</td>
+          </tr>
+        `;
+      });
+
+      const grandTotal = incidents.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      const totalRialAll = Math.floor(grandTotal);
+      const totalBaisaAll = Math.round((grandTotal - totalRialAll) * 1000);
+
+      let html = `
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>${title}</title>
+        <title>تقييم أضرار - ${policeRef}</title>
         <style>
-          body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 30px; color: #111; }
-          .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
-          .header h2 { margin: 0; color: #1e3a8a; }
-          .meta-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9rem; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: right; }
-          th { background-color: #f1f5f9; color: #1e3a8a; }
-          .total-box { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
-          .footer-sign { margin-top: 50px; display: flex; justify-content: space-between; text-align: center; font-weight: bold; }
+          body { 
+            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; 
+            padding: 30px; 
+            color: #000; 
+            line-height: 1.8;
+            font-size: 14px;
+          }
+          .gov-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          .gov-title-right { text-align: right; font-weight: bold; line-height: 1.4; }
+          .gov-title-left { text-align: left; font-weight: bold; line-height: 1.4; font-size: 13px; }
+          .basmala { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 15px; }
+          
+          .doc-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+          }
+
+          .date-fix {
+            direction: ltr;
+            unicode-bidi: embed;
+            display: inline-block;
+          }
+
+          .subject-box {
+            margin: 20px 0;
+            font-size: 15px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+          }
+          th, td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            font-size: 13px;
+          }
+          th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
+          
+          .total-row td { font-weight: bold; background-color: #fafafa; }
+
+          .footer-instructions {
+            margin-top: 25px;
+            text-align: justify;
+            line-height: 1.8;
+          }
+
+          .signature-block {
+            margin-top: 40px;
+            float: left;
+            text-align: center;
+            width: 300px;
+            font-weight: bold;
+          }
+
+          @media print {
+            body { padding: 15px; }
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h2>تقرير تقييم وحصر أضرار أصول الطرق</h2>
-          <p style="margin:5px 0 0 0; color:#64748b;">وثيقة تقييم ميداني رسمية</p>
+
+        <div class="gov-header">
+          <div class="gov-title-right">
+            سلطنة عمان<br>
+            وزارة النقل والاتصالات وتقنية المعلومات
+          </div>
+          <div style="text-align: center;">
+            <h3 style="margin: 0;">Sultanate of Oman</h3>
+          </div>
+          <div class="gov-title-left">
+            Sultanate of Oman<br>
+            Ministry of Transport, Communications<br>
+            & Information Technology
+          </div>
         </div>
-        <div class="meta-info">
-          <div><strong>بيانات الحادث/التقرير:</strong> ${title}</div>
-          <div><strong>تاريخ التقرير:</strong> ${dateStr}</div>
+
+        <div class="basmala">بسم الله الرحمن الرحيم</div>
+
+        <div class="doc-info">
+          <div>
+            الرقم: و ن ت ت م / ${policeRef}<br>
+            التاريخ: <span class="date-fix">${dateTodayStr}</span>
+          </div>
+          <div style="text-align: left;">
+            الموافق: ${new Date().toLocaleDateString('ar-TN-u-ca-islamic', {day: 'numeric', month: 'long', year: 'numeric'})}
+          </div>
         </div>
+
+        <div style="font-weight: bold; margin-bottom: 10px;">
+          المحترم / ${manager}<br>
+          مدير دائرة الطرق بمحافظة البريمي
+        </div>
+
+        <div>السلام عليكم ورحمة الله وبركاته... وبعد ،،،</div>
+
+        <div class="subject-box">
+          <strong>الموضوع : تقييم أضرار مادية ${station} (${policeRef})</strong>
+        </div>
+
+        <div>
+          بالإشارة إلى القضية رقم (<strong>${policeRef}</strong>) بتاريخ <strong class="date-fix">${noticeDateFormatted}</strong> تفيد عن وقوع حادث سير بتاريخ <strong class="date-fix">${accDateFormatted}</strong> في <strong>${location}</strong> بالمركبة رقم <strong>${vehicle}</strong> بقيادة السائق / <strong>${driver}</strong>.
+          <br>
+          نود إفادتكم بأنه بعد معاينة الحادث فقد قدرت الأضرار على النحو التالي :-
+        </div>
+
         <table>
           <thead>
             <tr>
-              <th>المكوّن المتضرر</th>
-              <th>الكمية</th>
-              <th>وحدة القياس</th>
-              <th>سعر الوحدة (ر.ع)</th>
-              <th>الإجمالي (ر.ع)</th>
+              <th rowspan="2" style="width: 30px;">م</th>
+              <th rowspan="2">نوع الأضرار</th>
+              <th rowspan="2" style="width: 50px;">العدد</th>
+              <th colspan="2">القيمة التقديرية</th>
+              <th colspan="2">الإجمالي</th>
+            </tr>
+            <tr>
+              <th style="width: 60px;">بيسة</th>
+              <th style="width: 60px;">ريال</th>
+              <th style="width: 60px;">بيسة</th>
+              <th style="width: 60px;">ريال</th>
             </tr>
           </thead>
-          <tbody>`;
-      
-      incidents.forEach(it=> {
-        html+=`<tr>
-          <td>${it.name}</td>
-          <td>${it.qty}</td>
-          <td>${it.unit}</td>
-          <td>${it.price.toFixed(3)}</td>
-          <td>${(it.qty*it.price).toFixed(3)}</td>
-        </tr>`;
-      });
-
-      html+=`
+          <tbody>
+            ${tableRows}
+            <tr class="total-row">
+              <td colspan="3" style="text-align: center;">الإجمالي الكلي</td>
+              <td style="text-align: center;">${String(totalBaisaAll).padStart(3, '0')}</td>
+              <td style="text-align: center;">${totalRialAll}</td>
+              <td style="text-align: center;">${String(totalBaisaAll).padStart(3, '0')}</td>
+              <td style="text-align: center;">${totalRialAll}</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="7">
+                <strong>بالأحرف:</strong> ${document.getElementById('totalWords').textContent}
+              </td>
+            </tr>
           </tbody>
         </table>
-        
-        <div class="total-box">
-          <div><strong>الإجمالي الكلي:</strong> ${grandTotalEl.textContent} ريال عماني</div>
-          <div style="margin-top:5px;"><strong>المبلغ بالحروف:</strong> ${document.getElementById('totalWords').textContent}</div>
+
+        <div class="footer-instructions">
+          عليه يرجى التكرم بإخطار المتسبب في الحادث بدفع مبالغ التعويضات عن طريق بطاقة السحب الائتماني أو موافاتنا بنسخة من مطالبة شركة التأمين بالإضافة إلى الإعلان الأولي والنهائي وهذا للأهمية.
         </div>
 
-        <div class="footer-sign">
-          <div>توقيع المهندس المعاين:<br><br>.........................</div>
-          <div>اعتماد الجهة المختصة:<br><br>.........................</div>
+        <div class="signature-block">
+          <div>${signer}</div>
+          <div style="font-weight: normal; margin-top: 5px;">${signerTitle}</div>
         </div>
+
       </body>
       </html>`;
 
-      const w=window.open('', '_blank'); 
-      w.document.write(html); 
-      w.document.close(); 
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
       w.focus();
       setTimeout(() => { w.print(); }, 500);
     });
