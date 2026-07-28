@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>منصة رواء لتقييم أضرار الطرق</title>
+  <title>منصة رواء لتقييم أضرار الطرق والأرشيف والإحصائيات</title>
   <!-- خط القاهرة الرسمي -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- مكتبة الرسم البياني Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     :root {
       --primary: #1e3a8a;       /* أزرق كحلي حكومي */
@@ -20,6 +23,7 @@
       --text-dark: #0f172a;
       --border: #e2e8f0;
       --danger: #dc2626;
+      --success: #16a34a;
       --radius: 8px;
     }
 
@@ -86,12 +90,47 @@
       color: #f1f5f9;
     }
 
+    /* شريط التبويبات الرئيسي */
+    .nav-tabs-container {
+      background-color: #fff;
+      border-bottom: 2px solid var(--border);
+    }
+    .nav-tabs {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      padding: 0 20px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 12px 20px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--text);
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .tab-btn:hover { color: var(--primary); }
+
     /* المحتوى الرئيسي */
     .main-wrapper {
       max-width: 1280px;
       margin: 24px auto;
       padding: 0 20px;
     }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     .grid-container {
       display: grid;
@@ -132,6 +171,24 @@
       align-items: center;
       gap: 8px;
     }
+
+    /* كروت المؤشرات KPI */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      border-top: 4px solid var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .kpi-card .kpi-title { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+    .kpi-card .kpi-value { font-size: 1.5rem; font-weight: 800; color: var(--primary-dark); margin-top: 5px; }
 
     /* أشكال المدخلات */
     .form-group {
@@ -191,6 +248,13 @@
     }
     .btn-primary:hover {
       background-color: #1e40af;
+    }
+    .btn-success {
+      background-color: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover {
+      background-color: #15803d;
     }
     .btn-secondary {
       background-color: #fff;
@@ -282,318 +346,424 @@
         </div>
       </div>
       <div>
-        <span class="badge-offline">عمل محلي offline (تخزين آمن)</span>
+        <span class="badge-offline">مزامنة سحابية متقدمة (Firebase)</span>
       </div>
     </div>
   </header>
 
-  <div class="main-wrapper">
-    <div class="grid-container">
-      
-      <!-- القسم الرئيسي -->
-      <main>
-        <!-- بطاقة تسجيل الضرر -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">📌 إحتساب أضرار جديدة</h2>
-          </div>
-
-          <div class="form-group">
-            <label>البحث السريع عن المكوّن الضرر</label>
-            <input id="compSearch" type="text" placeholder="ابحث باسم المكون (مثال: أسفلت, لوحة, رصيف)...">
-          </div>
-
-          <div class="form-group">
-            <label>اختيار المكوّن</label>
-            <select id="compSelect"></select>
-          </div>
-
-          <div class="form-row form-group">
-            <div>
-              <label>الكمية المتضررة</label>
-              <input id="qty" type="number" min="0" step="0.01" value="1">
-            </div>
-            <div>
-              <label>وحدة القياس</label>
-              <input id="unit" readonly>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button id="addBtn" class="btn btn-primary">إضافة للقائمة</button>
-            <button id="clearBtn" class="btn btn-secondary">تفريغ الحقول</button>
-          </div>
-        </div>
-
-        <!-- بطاقة القائمة والتكلفة -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">📝 بيان التلفيات المسجلة في الحادث</h2>
-          </div>
-
-          <div class="table-responsive">
-            <table id="incTable">
-              <thead>
-                <tr>
-                  <th>المكوّن الضرر</th>
-                  <th>الكمية</th>
-                  <th>سعر الوحدة (ر.ع)</th>
-                  <th>الإجمالي (ر.ع)</th>
-                  <th style="width: 50px;"></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3" style="text-align: left;">الإجمالي الكلي:</td>
-                  <td id="grandTotal" style="color: var(--primary); font-size: 1.1rem;">0.000</td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td colspan="5" style="color: #64748b; font-weight: normal;">
-                    <strong>المبلغ إجمالاً بالأحرف:</strong> <span id="totalWords" style="color: var(--text-dark); font-weight: 600;">صفر ريال عماني</span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <button id="exportPdf" class="btn btn-primary">🖨️ طباعة / حفظ التقرير (PDF)</button>
-            <button id="exportCsv" class="btn btn-secondary">📊 تصدير Excel (CSV)</button>
-            <button id="resetAll" class="btn btn-danger" style="margin-right: auto;">إعادة ضبط البيانات</button>
-          </div>
-        </div>
-      </main>
-
-      <!-- الشريط الجانبي للإعدادات -->
-      <aside>
-        <!-- بطاقة إعدادات التقرير وبيانات إخطار الشرطة -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">⚙️ بيانات إخطار الشرطة والحادث</h2>
-          </div>
-          
-          <div class="form-group">
-            <label>رقم مرجع الشرطة / القضية</label>
-            <input id="policeRefNo" value="2026/أ/136256" placeholder="مثال: 136256/أ/2026">
-          </div>
-
-          <div class="form-group">
-            <label>جهة/مركز الشرطة</label>
-            <input id="policeStation" value="شرطة محضة" placeholder="مثال: شرطة محضة">
-          </div>
-
-          <div class="form-row form-group">
-            <div>
-              <label>تاريخ الإخطار</label>
-              <input id="policeNoticeDate" type="date" value="2026-07-26">
-            </div>
-            <div>
-              <label>تاريخ الحادث</label>
-              <input id="accidentDate" type="date" value="2026-07-25">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>موقع الحادث</label>
-            <input id="accidentLocation" value="الشارع العام محضة البريمي قبل جسر كحل" placeholder="الموقع بالتفصيل">
-          </div>
-
-          <div class="form-row form-group">
-            <div>
-              <label>اسم السائق</label>
-              <input id="driverName" value="نعيم علي" placeholder="اسم السائق">
-            </div>
-            <div>
-              <label>رقم المركبة</label>
-              <input id="vehicleNo" value="4961 ( ح م ) تجاري" placeholder="رقم المركبة ورمزها">
-            </div>
-          </div>
-
-          <div class="form-row form-group">
-            <div>
-              <label>شركة التأمين</label>
-              <input id="insuranceCompany" value="شركة ظفار للتأمين" placeholder="شركة التأمين">
-            </div>
-            <div>
-              <label>رقم الوثيقة</label>
-              <input id="policyNo" value="402/0502/2026" placeholder="رقم الوثيقة">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>الموجه إليه الخطاب (المدير)</label>
-            <input id="managerName" value="المهندس / عزان بن عبد الله بن سالم أمبو علي">
-          </div>
-
-          <div class="form-group">
-            <label>اسم المحرر / الموقّع</label>
-            <input id="signerName" value="فاطمة بنت علي بن عبدالله المنذرية">
-          </div>
-
-          <div class="form-group">
-            <label>المسمى الوظيفي للموقّع</label>
-            <input id="signerTitle" value="رئيسة قسم الشؤون الإدارية والمالية">
-          </div>
-
-          <div class="form-group">
-            <label>وضع النظام</label>
-            <select id="mode">
-              <option value="edit">تحرير وإدارة (كامل الصلاحيات)</option>
-              <option value="readonly">قراءة فقط (عرض وتصدير)</option>
-            </select>
-          </div>
-          <div class="readonly-banner" id="readonlyNote" style="display:none">
-            🔒 وضع القراءة فقط مفعل (لا يمكن الحذف أو التعديل).
-          </div>
-        </div>
-
-        <!-- قائمة الأسعار والبنود -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">🏷️ لائحة أسعار مكونات الطرق</h2>
-          </div>
-
-          <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-            <table id="priceTable">
-              <thead>
-                <tr>
-                  <th>المكوّن</th>
-                  <th>الوحدة</th>
-                  <th>السعر</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div style="margin-top: 12px; display: flex; gap: 8px;">
-            <button id="addPrice" class="btn btn-secondary btn-sm" style="flex:1;">+ مكوّن جديد</button>
-            <button id="savePrices" class="btn btn-primary btn-sm">حفظ الأسعار</button>
-          </div>
-        </div>
-      </aside>
-
+  <!-- التبويبات الرئيسية -->
+  <div class="nav-tabs-container">
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('calculatorTab')">📝 شاشة التقييم وحصر التكلفة</button>
+      <button class="tab-btn" onclick="switchTab('archiveTab')">📁 أرشيف الحوادث (Cloud Archive)</button>
+      <button class="tab-btn" onclick="switchTab('statsTab')">📊 الإحصائيات والتقارير الرسومية</button>
     </div>
+  </div>
+
+  <div class="main-wrapper">
+    
+    <!-- التبويب الأول: شاشة التقييم الرئيسية -->
+    <div id="calculatorTab" class="tab-content active">
+      <div class="grid-container">
+        
+        <!-- القسم الرئيسي -->
+        <main>
+          <!-- بطاقة تسجيل الضرر -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">📌 إحتساب أضرار جديدة</h2>
+            </div>
+
+            <div class="form-group">
+              <label>البحث السريع عن المكوّن الضرر</label>
+              <input id="compSearch" type="text" placeholder="ابحث باسم المكون (مثال: أسفلت, لوحة, رصيف)...">
+            </div>
+
+            <div class="form-group">
+              <label>اختيار المكوّن</label>
+              <select id="compSelect"></select>
+            </div>
+
+            <div class="form-row form-group">
+              <div>
+                <label>الكمية المتضررة</label>
+                <input id="qty" type="number" min="0" step="0.01" value="1">
+              </div>
+              <div>
+                <label>وحدة القياس</label>
+                <input id="unit" readonly>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button id="addBtn" class="btn btn-primary">إضافة للقائمة</button>
+              <button id="clearBtn" class="btn btn-secondary">تفريغ الحقول</button>
+            </div>
+          </div>
+
+          <!-- بطاقة القائمة والتكلفة -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">📝 بيان التلفيات المسجلة في الحادث</h2>
+            </div>
+
+            <div class="table-responsive">
+              <table id="incTable">
+                <thead>
+                  <tr>
+                    <th>المكوّن الضرر</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة (ر.ع)</th>
+                    <th>الإجمالي (ر.ع)</th>
+                    <th style="width: 50px;"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" style="text-align: left;">الإجمالي الكلي:</td>
+                    <td id="grandTotal" style="color: var(--primary); font-size: 1.1rem;">0.000</td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td colspan="5" style="color: #64748b; font-weight: normal;">
+                      <strong>المبلغ إجمالاً بالأحرف:</strong> <span id="totalWords" style="color: var(--text-dark); font-weight: 600;">صفر ريال عماني</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button id="saveToCloudBtn" class="btn btn-success">☁️ حفظ التقرير في الأرشيف (Firebase)</button>
+              <button id="exportPdf" class="btn btn-primary">🖨️ طباعة / حفظ التقرير (PDF)</button>
+              <button id="exportCsv" class="btn btn-secondary">📊 تصدير Excel (CSV)</button>
+              <button id="resetAll" class="btn btn-danger" style="margin-right: auto;">إعادة ضبط البيانات</button>
+            </div>
+          </div>
+        </main>
+
+        <!-- الشريط الجانبي للإعدادات -->
+        <aside>
+          <!-- بطاقة إعدادات التقرير وبيانات إخطار الشرطة -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">⚙️ بيانات إخطار الشرطة والحادث</h2>
+            </div>
+            
+            <div class="form-group">
+              <label>رقم مرجع الشرطة / القضية</label>
+              <input id="policeRefNo" value="2026/أ/136256" placeholder="مثال: 136256/أ/2026">
+            </div>
+
+            <div class="form-group">
+              <label>جهة/مركز الشرطة</label>
+              <input id="policeStation" value="شرطة محضة" placeholder="مثال: شرطة محضة">
+            </div>
+
+            <div class="form-row form-group">
+              <div>
+                <label>تاريخ الإخطار</label>
+                <input id="policeNoticeDate" type="date" value="2026-07-26">
+              </div>
+              <div>
+                <label>تاريخ الحادث</label>
+                <input id="accidentDate" type="date" value="2026-07-25">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>موقع الحادث</label>
+              <input id="accidentLocation" value="الشارع العام محضة البريمي قبل جسر كحل" placeholder="الموقع بالتفصيل">
+            </div>
+
+            <div class="form-row form-group">
+              <div>
+                <label>اسم السائق</label>
+                <input id="driverName" value="نعيم علي" placeholder="اسم السائق">
+              </div>
+              <div>
+                <label>رقم المركبة</label>
+                <input id="vehicleNo" value="4961 ( ح م ) تجاري" placeholder="رقم المركبة ورمزها">
+              </div>
+            </div>
+
+            <div class="form-row form-group">
+              <div>
+                <label>شركة التأمين</label>
+                <input id="insuranceCompany" value="شركة ظفار للتأمين" placeholder="شركة التأمين">
+              </div>
+              <div>
+                <label>رقم الوثيقة</label>
+                <input id="policyNo" value="402/0502/2026" placeholder="رقم الوثيقة">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>الموجه إليه الخطاب (المدير)</label>
+              <input id="managerName" value="المهندس / عزان بن عبد الله بن سالم أمبو علي">
+            </div>
+
+            <div class="form-group">
+              <label>اسم المحرر / الموقّع</label>
+              <input id="signerName" value="فاطمة بنت علي بن عبدالله المنذرية">
+            </div>
+
+            <div class="form-group">
+              <label>المسمى الوظيفي للموقّع</label>
+              <input id="signerTitle" value="رئيسة قسم الشؤون الإدارية والمالية">
+            </div>
+
+            <div class="form-group">
+              <label>وضع النظام</label>
+              <select id="mode">
+                <option value="edit">تحرير وإدارة (كامل الصلاحيات)</option>
+                <option value="readonly">قراءة فقط (عرض وتصدير)</option>
+              </select>
+            </div>
+            <div class="readonly-banner" id="readonlyNote" style="display:none">
+              🔒 وضع القراءة فقط مفعل (لا يمكن الحذف أو التعديل).
+            </div>
+          </div>
+
+          <!-- قائمة الأسعار والبنود -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">🏷️ لائحة أسعار مكونات الطرق</h2>
+            </div>
+
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+              <table id="priceTable">
+                <thead>
+                  <tr>
+                    <th>المكوّن</th>
+                    <th>الوحدة</th>
+                    <th>السعر</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+              <button id="addPrice" class="btn btn-secondary btn-sm" style="flex:1;">+ مكوّن جديد</button>
+              <button id="savePrices" class="btn btn-primary btn-sm">حفظ الأسعار</button>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- التبويب الثاني: أرشيف الحوادث السحابي -->
+    <div id="archiveTab" class="tab-content">
+      <div class="card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+          <h2 class="card-title">📁 أرشيف الحوادث والتقارير (Firebase Firestore)</h2>
+          <div style="width: 300px;">
+            <input id="archiveSearch" type="text" placeholder="بحث برقم المرجع / السائق / شركة التأمين..." oninput="renderArchiveTable()">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="archiveTable">
+            <thead>
+              <tr>
+                <th>رقم المرجع</th>
+                <th>تاريخ الحادث</th>
+                <th>اسم السائق</th>
+                <th>شركة التأمين</th>
+                <th>الإجمالي (ر.ع)</th>
+                <th>تاريخ الحفظ</th>
+                <th style="text-align: center;">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- التبويب الثالث: التقارير والإحصائيات -->
+    <div id="statsTab" class="tab-content">
+      <div class="kpi-grid">
+        <div class="kpi-card" style="border-top-color: #1e3a8a;">
+          <div class="kpi-title">إجمالي المبالغ التقديرية المسجلة</div>
+          <div class="kpi-value" id="kpiTotalAmount">0.000 ر.ع</div>
+        </div>
+        <div class="kpi-card" style="border-top-color: #d97706;">
+          <div class="kpi-title">إجمالي عدد الحوادث الأرشيفية</div>
+          <div class="kpi-value" id="kpiTotalCount">0</div>
+        </div>
+        <div class="kpi-card" style="border-top-color: #16a34a;">
+          <div class="kpi-title">متوسط تكلفة الحادث الواحد</div>
+          <div class="kpi-value" id="kpiAvgAmount">0.000 ر.ع</div>
+        </div>
+      </div>
+
+      <div class="grid-container" style="grid-template-columns: 1fr 1fr;">
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">🏢 توزيع مبالغ المطالبات حسب شركات التأمين</h2></div>
+          <div style="position: relative; height: 300px;">
+            <canvas id="insuranceChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">📋 تفاصيل المطالبات حسب شركة التأمين</h2></div>
+          <div class="table-responsive">
+            <table id="insuranceStatsTable">
+              <thead>
+                <tr>
+                  <th>شركة التأمين</th>
+                  <th>عدد الحوادث</th>
+                  <th>إجمالي التكلفة (ر.ع)</th>
+                  <th>النسبة</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <footer>
     وزارة النقل والاتصالات وتقنية المعلومات - دائرة الطرق بمحافظة البريمي - سلطنة عمان © 2026
   </footer>
 
- <script>
+  <!-- كود الفايربيس للربط السحابي -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // إعدادات Firebase الخاصة بمشروعك
+    const firebaseConfig = {
+      apiKey: "AIzaSyAunvm01sF_UXh5rgf_Itxas9vZaOyirU4",
+      authDomain: "damageroad-6dfa7.firebaseapp.com",
+      projectId: "damageroad-6dfa7",
+      storageBucket: "damageroad-6dfa7.firebasestorage.app",
+      messagingSenderId: "305949549383",
+      appId: "1:305949549383:web:cb6661e97e4c0b300ce262",
+      measurementId: "G-9F8BPPX118"
+    };
+
+    // تهيئة Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     // --- البيانات الافتراضية ---
-   const DEFAULT_PRICES = [
-  // --- البنود الأساسية ---
-  {id: 'subgrade', name: 'طبقة الأساس المساعد (م٣)', unit: 'متر مكعب', price: 6.600},
-  {id: 'aggregate', name: 'طبقة الأساس الحصوي (م٣)', unit: 'متر مكعب', price: 8.500},
-  {id: 'prime_coat', name: 'طبقة التشريب (م٢)', unit: 'متر مربع', price: 0.400},
-  {id: 'asphalt_base', name: 'طبقة الأساس الإسفلتي (م٣)', unit: 'متر مكعب', price: 70.000},
-  {id: 'tack_coat', name: 'الطبقة اللاصقة', unit: 'متر مربع', price: 0.500},
-  {id: 'asphalt_surface', name: 'طبقة الأسفلت السطحية', unit: 'متر مكعب', price: 75.000},
-  {id: 'subbase', name: 'طبقة ما تحت الأساس', unit: 'متر مكعب', price: 5.000},
+    const DEFAULT_PRICES = [
+      // --- البنود الأساسية ---
+      {id: 'subgrade', name: 'طبقة الأساس المساعد (م٣)', unit: 'متر مكعب', price: 6.600},
+      {id: 'aggregate', name: 'طبقة الأساس الحصوي (م٣)', unit: 'متر مكعب', price: 8.500},
+      {id: 'prime_coat', name: 'طبقة التشريب (م٢)', unit: 'متر مربع', price: 0.400},
+      {id: 'asphalt_base', name: 'طبقة الأساس الإسفلتي (م٣)', unit: 'متر مكعب', price: 70.000},
+      {id: 'tack_coat', name: 'الطبقة اللاصقة', unit: 'متر مربع', price: 0.500},
+      {id: 'asphalt_surface', name: 'طبقة الأسفلت السطحية', unit: 'متر مكعب', price: 75.000},
+      {id: 'subbase', name: 'طبقة ما تحت الأساس', unit: 'متر مكعب', price: 5.000},
 
-  // --- أعمال الحفريات والقطع ---
-  {id: 'exc_normal', name: 'الحفر في الأرض العادية', unit: 'متر مكعب', price: 5.000},
-  {id: 'exc_soft_rock', name: 'الحفر في الأرض الصخرية اللينة', unit: 'متر مكعب', price: 10.000},
-  {id: 'exc_hard_rock', name: 'الحفر في الأرض الصخرية الصلبة', unit: 'متر مكعب', price: 15.000},
-  {id: 'asphalt_cut', name: 'قطع الأسفلت', unit: 'متر مربع', price: 4.000},
+      // --- أعمال الحفريات والقطع ---
+      {id: 'exc_normal', name: 'الحفر في الأرض العادية', unit: 'متر مكعب', price: 5.000},
+      {id: 'exc_soft_rock', name: 'الحفر في الأرض الصخرية اللينة', unit: 'متر مكعب', price: 10.000},
+      {id: 'exc_hard_rock', name: 'الحفر في الأرض الصخرية الصلبة', unit: 'متر مكعب', price: 15.000},
+      {id: 'asphalt_cut', name: 'قطع الأسفلت', unit: 'متر مربع', price: 4.000},
 
-  // --- اللوحات الإرشادية والتحذيرية ---
-  {id: 'tri_sign_600', name: 'لوحة مثلثة قطر 600 مليمتر', unit: 'عدد', price: 45.000},
-  {id: 'tri_sign_750', name: 'لوحة مثلثة قطر 750 مليمتر', unit: 'عدد', price: 52.500},
-  {id: 'tri_sign_900', name: 'لوحة مثلثة قطر 900 مليمتر', unit: 'عدد', price: 60.000},
-  {id: 'tri_sign_1000', name: 'لوحة مثلثة قطر 1000 مليمتر', unit: 'عدد', price: 75.000},
-  {id: 'tri_sign_1200', name: 'لوحة مثلثة قطر 1200 مليمتر', unit: 'عدد', price: 90.000},
-  {id: 'circ_sign_600', name: 'لوحة دائرية قطر 600 مليمتر', unit: 'عدد', price: 50.000},
-  {id: 'circ_sign_900', name: 'لوحة دائرية قطر 900 مليمتر', unit: 'عدد', price: 75.000},
-  {id: 'circ_sign_1000', name: 'لوحة دائرية قطر 1000 مليمتر', unit: 'عدد', price: 80.000},
-  {id: 'circ_sign_1200', name: 'لوحة دائرية قطر 1200 مليمتر', unit: 'عدد', price: 85.000},
-  {id: 'rect_sign', name: 'لوحة مستطيلة أو مربعة أو سهمية', unit: 'متر مربع', price: 70.000},
-  {id: 'gantry_sign_1', name: 'لوحات معلقة مع الإطار رقم 1', unit: 'متر مربع', price: 190.000},
+      // --- اللوحات الإرشادية والتحذيرية ---
+      {id: 'tri_sign_600', name: 'لوحة مثلثة قطر 600 مليمتر', unit: 'عدد', price: 45.000},
+      {id: 'tri_sign_750', name: 'لوحة مثلثة قطر 750 مليمتر', unit: 'عدد', price: 52.500},
+      {id: 'tri_sign_900', name: 'لوحة مثلثة قطر 900 مليمتر', unit: 'عدد', price: 60.000},
+      {id: 'tri_sign_1000', name: 'لوحة مثلثة قطر 1000 مليمتر', unit: 'عدد', price: 75.000},
+      {id: 'tri_sign_1200', name: 'لوحة مثلثة قطر 1200 مليمتر', unit: 'عدد', price: 90.000},
+      {id: 'circ_sign_600', name: 'لوحة دائرية قطر 600 مليمتر', unit: 'عدد', price: 50.000},
+      {id: 'circ_sign_900', name: 'لوحة دائرية قطر 900 مليمتر', unit: 'عدد', price: 75.000},
+      {id: 'circ_sign_1000', name: 'لوحة دائرية قطر 1000 مليمتر', unit: 'عدد', price: 80.000},
+      {id: 'circ_sign_1200', name: 'لوحة دائرية قطر 1200 مليمتر', unit: 'عدد', price: 85.000},
+      {id: 'rect_sign', name: 'لوحة مستطيلة أو مربعة أو سهمية', unit: 'متر مربع', price: 70.000},
+      {id: 'gantry_sign_1', name: 'لوحات معلقة مع الإطار رقم 1', unit: 'متر مربع', price: 190.000},
 
-  // --- الأعمدة والقوائم ---
-  {id: 'gantry_post_2', name: 'عمود اللوحة المعلقة رقم 2', unit: 'متر طولي', price: 500.000},
-  {id: 'gantry_post_3', name: 'عمود اللوحة المعلقة رقم 3', unit: 'متر طولي', price: 250.000},
-  {id: 'pole_2in', name: 'عمود إشارة قطر 2 بوصة', unit: 'عدد', price: 30.000},
-  {id: 'pole_2_5in', name: 'عمود إشارة قطر 2.5 بوصة', unit: 'عدد', price: 40.000},
-  {id: 'pole_3in', name: 'عمود إشارة قطر 3 بوصة', unit: 'عدد', price: 60.000},
-  {id: 'pole_4in', name: 'عمود إشارة قطر 4 بوصة', unit: 'عدد', price: 80.000},
-  {id: 'pole_5in', name: 'عمود إشارة قطر 5 بوصة', unit: 'عدد', price: 90.000},
-  {id: 'pole_6in', name: 'عمود إشارة قطر 6 بوصة', unit: 'عدد', price: 100.000},
-  {id: 'pole_8in', name: 'عمود إشارة قطر 8 بوصة', unit: 'عدد', price: 120.000},
+      // --- الأعمدة والقوائم ---
+      {id: 'gantry_post_2', name: 'عمود اللوحة المعلقة رقم 2', unit: 'متر طولي', price: 500.000},
+      {id: 'gantry_post_3', name: 'عمود اللوحة المعلقة رقم 3', unit: 'متر طولي', price: 250.000},
+      {id: 'pole_2in', name: 'عمود إشارة قطر 2 بوصة', unit: 'عدد', price: 30.000},
+      {id: 'pole_2_5in', name: 'عمود إشارة قطر 2.5 بوصة', unit: 'عدد', price: 40.000},
+      {id: 'pole_3in', name: 'عمود إشارة قطر 3 بوصة', unit: 'عدد', price: 60.000},
+      {id: 'pole_4in', name: 'عمود إشارة قطر 4 بوصة', unit: 'عدد', price: 80.000},
+      {id: 'pole_5in', name: 'عمود إشارة قطر 5 بوصة', unit: 'عدد', price: 90.000},
+      {id: 'pole_6in', name: 'عمود إشارة قطر 6 بوصة', unit: 'عدد', price: 100.000},
+      {id: 'pole_8in', name: 'عمود إشارة قطر 8 بوصة', unit: 'عدد', price: 120.000},
 
-  // --- تجهيزات معابر الطوارئ والمشاة ---
-  {id: 'emerg_posts', name: 'أعمدة معابر الطوارئ', unit: 'عدد', price: 25.000},
-  {id: 'emerg_chains', name: 'سلاسل حديدية لفتحات الطوارئ', unit: 'متر طولي', price: 4.000},
-  {id: 'irish_cross_reflector', name: 'أعمدة المعابر الإيرلندية شاملاً العاكس', unit: 'عدد', price: 75.000},
-  {id: 'irish_cross_30cm', name: 'أعمدة المعابر الإيرلندية بطول 30سم', unit: 'عدد', price: 32.000},
+      // --- تجهيزات معابر الطوارئ والمشاة ---
+      {id: 'emerg_posts', name: 'أعمدة معابر الطوارئ', unit: 'عدد', price: 25.000},
+      {id: 'emerg_chains', name: 'سلاسل حديدية لفتحات الطوارئ', unit: 'متر طولي', price: 4.000},
+      {id: 'irish_cross_reflector', name: 'أعمدة المعابر الإيرلندية شاملاً العاكس', unit: 'عدد', price: 75.000},
+      {id: 'irish_cross_30cm', name: 'أعمدة المعابر الإيرلندية بطول 30سم', unit: 'عدد', price: 32.000},
 
-  // --- الحواجز الواقية وملحقاتها ---
-  {id: 'guardrail_unit', name: 'الحاجز الواقي 3.81', unit: 'عدد', price: 57.150},
-  {id: 'guardrail_meter', name: 'الحاجز الواقي (م طولي)', unit: 'متر طولي', price: 15.000},
-  {id: 'ground_beam', name: 'الكمرة المثبتة في الأرض', unit: 'عدد', price: 50.000},
-  {id: 'end_shoe', name: 'نهاية الحاجز (كوع)', unit: 'عدد', price: 25.000},
-  {id: 'support_post', name: 'العمود الحامل (شامل الفاصل والمسامير)', unit: 'عدد', price: 25.000},
-  {id: 'pedestrian_guard_1', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 1', unit: 'متر طولي', price: 80.000},
-  {id: 'pedestrian_guard_2', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 2', unit: 'متر طولي', price: 140.000},
+      // --- الحواجز الواقية وملحقاتها ---
+      {id: 'guardrail_unit', name: 'الحاجز الواقي 3.81', unit: 'عدد', price: 57.150},
+      {id: 'guardrail_meter', name: 'الحاجز الواقي (م طولي)', unit: 'متر طولي', price: 15.000},
+      {id: 'ground_beam', name: 'الكمرة المثبتة في الأرض', unit: 'عدد', price: 50.000},
+      {id: 'end_shoe', name: 'نهاية الحاجز (كوع)', unit: 'عدد', price: 25.000},
+      {id: 'support_post', name: 'العمود الحامل (شامل الفاصل والمسامير)', unit: 'عدد', price: 25.000},
+      {id: 'pedestrian_guard_1', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 1', unit: 'متر طولي', price: 80.000},
+      {id: 'pedestrian_guard_2', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 2', unit: 'متر طولي', price: 140.000},
 
-  // --- ممتصات الصدمات والعواكس ---
-  {id: 'front_piece', name: 'القطعة الأمامية', unit: 'القطعة', price: 420.000},
-  {id: 'front_support_pipes', name: 'الداعم الأمامي (أنابيب)', unit: 'القطعة', price: 100.000},
-  {id: 'attenuator_belt_a', name: 'حزام امتصاص القوة نوع أ', unit: 'القطعة', price: 400.000},
-  {id: 'attenuator_belt_b', name: 'حزام امتصاص القوة نوع ب', unit: 'القطعة', price: 400.000},
-  {id: 'sliding_ring', name: 'شريحة الجانب الأمامي (الحلقة المتحركة)', unit: 'القطعة', price: 200.000},
-  {id: 'double_reflector', name: 'عاكس من الجهتين', unit: 'القطعة', price: 6.000},
+      // --- ممتصات الصدمات والعواكس ---
+      {id: 'front_piece', name: 'القطعة الأمامية', unit: 'القطعة', price: 420.000},
+      {id: 'front_support_pipes', name: 'الداعم الأمامي (أنابيب)', unit: 'القطعة', price: 100.000},
+      {id: 'attenuator_belt_a', name: 'حزام امتصاص القوة نوع أ', unit: 'القطعة', price: 400.000},
+      {id: 'attenuator_belt_b', name: 'حزام امتصاص القوة نوع ب', unit: 'القطعة', price: 400.000},
+      {id: 'sliding_ring', name: 'شريحة الجانب الأمامي (الحلقة المتحركة)', unit: 'القطعة', price: 200.000},
+      {id: 'double_reflector', name: 'عاكس من الجهتين', unit: 'القطعة', price: 6.000},
 
-  // --- العواكس وعيون القطط (إضافات جديدة) ---
-  {id: 'single_reflector', name: 'عاكس من جهة واحدة', unit: 'القطعة', price: 4.000},
-  {id: 'foldable_post_reflector_2s', name: 'عاكس من جهتين (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 20.000},
-  {id: 'foldable_post_reflector_1s', name: 'عاكس من جهة واحدة (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 15.000},
-  {id: 'cat_eyes_2s', name: 'عاكس من الجهتين (عيون القطط)', unit: 'القطعة', price: 6.500},
-  {id: 'cat_eyes_1s', name: 'عاكس من جهة واحدة (عيون القطط)', unit: 'القطعة', price: 5.000},
+      // --- العواكس وعيون القطط ---
+      {id: 'single_reflector', name: 'عاكس من جهة واحدة', unit: 'القطعة', price: 4.000},
+      {id: 'foldable_post_reflector_2s', name: 'عاكس من جهتين (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 20.000},
+      {id: 'foldable_post_reflector_1s', name: 'عاكس من جهة واحدة (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 15.000},
+      {id: 'cat_eyes_2s', name: 'عاكس من الجهتين (عيون القطط)', unit: 'القطعة', price: 6.500},
+      {id: 'cat_eyes_1s', name: 'عاكس من جهة واحدة (عيون القطط)', unit: 'القطعة', price: 5.000},
 
-  // --- الأعمال الخرسانية والجسور (إضافات جديدة) ---
-  {id: 'bridge_conc_rebar', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
-  {id: 'bridge_prestressed_conc', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور مسبقة الإجهاد وبدون الكابل', unit: 'متر مكعب', price: 160.000},
-  {id: 'precast_cable', name: 'الكابل للخرسانة المسبقة التجهيز', unit: 'الطن', price: 1700.000},
-  {id: 'box_culvert_conc', name: 'خرسانة مسلحة للمعابر الصندوقية شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
-  {id: 'irish_cross_rc', name: 'خرسانة مسلحة للمعابر الإيرلندية شاملا حديد التسليح', unit: 'متر مكعب', price: 115.000},
-  {id: 'irish_cross_plain_conc', name: 'خرسانة عادية للمعابر الايرلندية (لايشمل حديد التسليح)', unit: 'متر مكعب', price: 80.000},
-  {id: 'retaining_wall_conc', name: 'خرسانة مسلحة للحوائط الساندة شاملا حديد التسليح', unit: 'متر مكعب', price: 120.000},
-  {id: 'general_plain_conc', name: 'خرسانة عادية لأي أعمال أخرى', unit: 'متر مكعب', price: 75.000},
+      // --- الأعمال الخرسانية والجسور ---
+      {id: 'bridge_conc_rebar', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
+      {id: 'bridge_prestressed_conc', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور مسبقة الإجهاد وبدون الكابل', unit: 'متر مكعب', price: 160.000},
+      {id: 'precast_cable', name: 'الكابل للخرسانة المسبقة التجهيز', unit: 'الطن', price: 1700.000},
+      {id: 'box_culvert_conc', name: 'خرسانة مسلحة للمعابر الصندوقية شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
+      {id: 'irish_cross_rc', name: 'خرسانة مسلحة للمعابر الإيرلندية شاملا حديد التسليح', unit: 'متر مكعب', price: 115.000},
+      {id: 'irish_cross_plain_conc', name: 'خرسانة عادية للمعابر الايرلندية (لايشمل حديد التسليح)', unit: 'متر مكعب', price: 80.000},
+      {id: 'retaining_wall_conc', name: 'خرسانة مسلحة للحوائط الساندة شاملا حديد التسليح', unit: 'متر مكعب', price: 120.000},
+      {id: 'general_plain_conc', name: 'خرسانة عادية لأي أعمال أخرى', unit: 'متر مكعب', price: 75.000},
 
-  // --- المعابر الأنبوبية (إضافات جديدة) ---
-  {id: 'pipe_culvert_900_dbl', name: 'معابر أنبوبية قطر 900 مليمتر مزدوجة', unit: 'متر طولي', price: 180.000},
-  {id: 'pipe_culvert_600_dbl', name: 'معابر أنبوبية قطر 600 مليمتر مزدوجة', unit: 'متر طولي', price: 130.000},
-  {id: 'pipe_culvert_900_sgl', name: 'معابر أنبوبية قطر 900 مليمتر مفردة', unit: 'متر طولي', price: 110.000},
-  {id: 'pipe_culvert_600_sgl', name: 'معابر أنبوبية قطر 600 مليمتر مفردة', unit: 'متر طولي', price: 80.000},
+      // --- المعابر الأنبوبية ---
+      {id: 'pipe_culvert_900_dbl', name: 'معابر أنبوبية قطر 900 مليمتر مزدوجة', unit: 'متر طولي', price: 180.000},
+      {id: 'pipe_culvert_600_dbl', name: 'معابر أنبوبية قطر 600 مليمتر مزدوجة', unit: 'متر طولي', price: 130.000},
+      {id: 'pipe_culvert_900_sgl', name: 'معابر أنبوبية قطر 900 مليمتر مفردة', unit: 'متر طولي', price: 110.000},
+      {id: 'pipe_culvert_600_sgl', name: 'معابر أنبوبية قطر 600 مليمتر مفردة', unit: 'متر طولي', price: 80.000},
 
-  // --- الجابيون والربراب والحماية (إضافات جديدة) ---
-  {id: 'riprap_dry', name: 'ربراب بدون مونه', unit: 'متر مكعب', price: 20.000},
-  {id: 'riprap_mortared', name: 'ربراب بالمونه شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 30.000},
-  {id: 'gabion', name: 'جابيون شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 25.000},
-  {id: 'waterway_lining', name: 'تبطين المجاري المائية الخرسانية', unit: 'متر مكعب', price: 45.000},
+      // --- الجابيون والربراب والحماية ---
+      {id: 'riprap_dry', name: 'ربراب بدون مونه', unit: 'متر مكعب', price: 20.000},
+      {id: 'riprap_mortared', name: 'ربراب بالمونه شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 30.000},
+      {id: 'gabion', name: 'جابيون شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 25.000},
+      {id: 'waterway_lining', name: 'تبطين المجاري المائية الخرسانية', unit: 'متر مكعب', price: 45.000},
 
-  // --- الحواجز الخرسانية وأحجار الرصيف (إضافات جديدة) ---
-  {id: 'conc_barrier_std_h40', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 40 سم', unit: 'متر طولي', price: 65.000},
-  {id: 'conc_barrier_std_h60', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 60 سم', unit: 'متر طولي', price: 80.000},
-  {id: 'conc_barrier_std_h80', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 80 سم', unit: 'متر طولي', price: 100.000},
-  {id: 'conc_barrier_hd_h40', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 40 سم', unit: 'متر طولي', price: 90.000},
-  {id: 'conc_barrier_hd_h60', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 60 سم', unit: 'متر طولي', price: 100.000},
-  {id: 'conc_barrier_hd_h80', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 80 سم', unit: 'متر طولي', price: 120.000},
-  {id: 'curb_pedestrian', name: 'أحجار الرصيف لمعبر المشاة', unit: 'متر طولي', price: 15.000},
-  {id: 'curb_mountable', name: 'أحجار الرصيف قابلة للصعود', unit: 'متر طولي', price: 15.000},
-  {id: 'interlock_tiles', name: 'بلاط انترلوك', unit: 'متر مربع', price: 10.000},
-  {id: 'tactile_tiles', name: 'بلاطات ذات الحبيبات الظاهرة', unit: 'متر مربع', price: 10.000},
+      // --- الحواجز الخرسانية وأحجار الرصيف ---
+      {id: 'conc_barrier_std_h40', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 40 سم', unit: 'متر طولي', price: 65.000},
+      {id: 'conc_barrier_std_h60', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 60 سم', unit: 'متر طولي', price: 80.000},
+      {id: 'conc_barrier_std_h80', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 80 سم', unit: 'متر طولي', price: 100.000},
+      {id: 'conc_barrier_hd_h40', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 40 سم', unit: 'متر طولي', price: 90.000},
+      {id: 'conc_barrier_hd_h60', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 60 سم', unit: 'متر طولي', price: 100.000},
+      {id: 'conc_barrier_hd_h80', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 80 سم', unit: 'متر طولي', price: 120.000},
+      {id: 'curb_pedestrian', name: 'أحجار الرصيف لمعبر المشاة', unit: 'متر طولي', price: 15.000},
+      {id: 'curb_mountable', name: 'أحجار الرصيف قابلة للصعود', unit: 'متر طولي', price: 15.000},
+      {id: 'interlock_tiles', name: 'بلاط انترلوك', unit: 'متر مربع', price: 10.000},
+      {id: 'tactile_tiles', name: 'بلاطات ذات الحبيبات الظاهرة', unit: 'متر مربع', price: 10.000},
 
-  // --- أطليَة ودهانات الطرق (إضافات جديدة) ---
-  {id: 'road_marking_machine', name: 'دهان بالماكينة أصفر وأبيض', unit: 'متر مربع', price: 5.000},
-  {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
-];
-
+      // --- أطليَة ودهانات الطرق ---
+      {id: 'road_marking_machine', name: 'دهان بالماكينة أصفر وأبيض', unit: 'متر مربع', price: 5.000},
+      {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
+    ];
 
     // --- عناصر DOM ---
     const compSelect = document.getElementById('compSelect');
@@ -613,10 +783,13 @@
     const exportCsvBtn = document.getElementById('exportCsv');
     const exportPdfBtn = document.getElementById('exportPdf');
     const resetAllBtn = document.getElementById('resetAll');
+    const saveToCloudBtn = document.getElementById('saveToCloudBtn');
 
     // --- حالة التطبيق ---
     let prices = [];
     let incidents = [];
+    let savedReports = [];
+    let myChart = null;
 
     const uid = () => Math.random().toString(36).slice(2,9);
 
@@ -634,6 +807,30 @@
         modeSelect.value = mode;
       }catch(e){ prices = DEFAULT_PRICES; incidents = []; }
     }
+
+    // --- الربط المباشر المباشر مع Firestore ---
+    onSnapshot(collection(db, "accidents_archive"), (snapshot) => {
+      savedReports = [];
+      snapshot.forEach((doc) => {
+        savedReports.push({ id: doc.id, ...doc.data() });
+      });
+      renderArchiveTable();
+      if(document.getElementById('statsTab').classList.contains('active')) {
+        renderStatistics();
+      }
+    });
+
+    // --- التنقل بين التبويبات ---
+    window.switchTab = function(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      const btns = document.querySelectorAll('.tab-btn');
+      if(tabId === 'calculatorTab') btns[0].classList.add('active');
+      if(tabId === 'archiveTab') { btns[1].classList.add('active'); renderArchiveTable(); }
+      if(tabId === 'statsTab') { btns[2].classList.add('active'); renderStatistics(); }
+    };
 
     // --- تحويل الرقم إلى كلمات عربية ---
     function numberToArabicWords(num){
@@ -755,6 +952,166 @@
       unitInput.value=sel?sel.unit:'';
     }
 
+    // --- حفظ الحادث السحابي بـ Firebase ---
+    saveToCloudBtn.addEventListener('click', async () => {
+      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
+      if(incidents.length === 0) return alert('لا توجد أضرار مسجلة للحادث للحفظ!');
+      
+      const policeRef = document.getElementById('policeRefNo').value.trim() || 'بدون مرجع';
+      const docId = policeRef.replace(/\//g, "_");
+
+      const grandTotal = incidents.reduce((sum, item) => sum + (item.qty * item.price), 0);
+
+      const reportData = {
+        saveDate: new Date().toLocaleDateString('ar-OM'),
+        policeRef: policeRef,
+        policeStation: document.getElementById('policeStation').value,
+        noticeDate: document.getElementById('policeNoticeDate').value,
+        accidentDate: document.getElementById('accidentDate').value,
+        location: document.getElementById('accidentLocation').value,
+        driver: document.getElementById('driverName').value,
+        vehicle: document.getElementById('vehicleNo').value,
+        insurance: document.getElementById('insuranceCompany').value || 'غير محدد',
+        policyNo: document.getElementById('policyNo').value,
+        manager: document.getElementById('managerName').value,
+        signer: document.getElementById('signerName').value,
+        signerTitle: document.getElementById('signerTitle').value,
+        incidents: [...incidents],
+        grandTotal: grandTotal,
+        createdAt: serverTimestamp()
+      };
+
+      try {
+        await setDoc(doc(db, "accidents_archive", docId), reportData);
+        alert('✅ تم حفظ التقرير بنجاح في أرشفة Firebase السحابية!');
+      } catch (error) {
+        console.error("Error saving to Firebase: ", error);
+        alert('❌ حدث خطأ أثناء الحفظ السحابي!');
+      }
+    });
+
+    // --- عرض جدول الأرشيف ---
+    function renderArchiveTable() {
+      const tbody = document.querySelector('#archiveTable tbody');
+      const filter = document.getElementById('archiveSearch').value.toLowerCase();
+      tbody.innerHTML = '';
+
+      const filtered = savedReports.filter(r => 
+        (r.policeRef && r.policeRef.toLowerCase().includes(filter)) || 
+        (r.driver && r.driver.toLowerCase().includes(filter)) ||
+        (r.insurance && r.insurance.toLowerCase().includes(filter))
+      );
+
+      if(filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">لا توجد حوادث محفوظة في الأرشيف</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${r.policeRef}</strong></td>
+          <td>${r.accidentDate}</td>
+          <td>${r.driver}</td>
+          <td>${r.insurance}</td>
+          <td><strong style="color:var(--primary);">${r.grandTotal.toFixed(3)}</strong></td>
+          <td>${r.saveDate || '-'}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-primary btn-sm" onclick="previewArchivePdf('${r.id}')">🖨️ PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="loadArchiveToEdit('${r.id}')">✏️ تعديل</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteArchiveDoc('${r.id}')">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- تحميل حادث من الأرشيف للتعديل ---
+    window.loadArchiveToEdit = function(id) {
+      const item = savedReports.find(r => r.id === id);
+      if(!item) return;
+
+      if(confirm(`تحميل بيانات الحادث (${item.policeRef}) في شاشة التقييم؟`)) {
+        document.getElementById('policeRefNo').value = item.policeRef;
+        document.getElementById('policeStation').value = item.policeStation;
+        document.getElementById('policeNoticeDate').value = item.noticeDate;
+        document.getElementById('accidentDate').value = item.accidentDate;
+        document.getElementById('accidentLocation').value = item.location;
+        document.getElementById('driverName').value = item.driver;
+        document.getElementById('vehicleNo').value = item.vehicle;
+        document.getElementById('insuranceCompany').value = item.insurance;
+        document.getElementById('policyNo').value = item.policyNo;
+        
+        incidents = [...item.incidents];
+        saveToStorage();
+        renderIncidents();
+        switchTab('calculatorTab');
+      }
+    };
+
+    // --- حذف من الأرشيف السحابي ---
+    window.deleteArchiveDoc = async function(id) {
+      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
+      if(confirm('هل تريد حذف هذا التقرير نهائياً من أرشيف Firebase؟')) {
+        try {
+          await deleteDoc(doc(db, "accidents_archive", id));
+          alert('🗑️ تم الحذف بنجاح');
+        } catch(e) {
+          alert('❌ فشلت عملية الحذف السحابي');
+        }
+      }
+    };
+
+    // --- عرض التقارير والإحصائيات ---
+    function renderStatistics() {
+      const totalAmount = savedReports.reduce((sum, r) => sum + r.grandTotal, 0);
+      const totalCount = savedReports.length;
+      const avgAmount = totalCount > 0 ? (totalAmount / totalCount) : 0;
+
+      document.getElementById('kpiTotalAmount').textContent = totalAmount.toFixed(3) + ' ر.ع';
+      document.getElementById('kpiTotalCount').textContent = totalCount;
+      document.getElementById('kpiAvgAmount').textContent = avgAmount.toFixed(3) + ' ر.ع';
+
+      const insuranceMap = {};
+      savedReports.forEach(r => {
+        const ins = (r.insurance && r.insurance.trim()) || 'غير محدد';
+        if(!insuranceMap[ins]) { insuranceMap[ins] = { count: 0, total: 0 }; }
+        insuranceMap[ins].count += 1;
+        insuranceMap[ins].total += r.grandTotal;
+      });
+
+      const labels = Object.keys(insuranceMap);
+      const dataTotals = labels.map(l => insuranceMap[l].total);
+
+      const ctx = document.getElementById('insuranceChart').getContext('2d');
+      if(myChart) myChart.destroy();
+
+      myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'إجمالي التكلفة (ر.ع)', data: dataTotals, backgroundColor: '#1e3a8a', borderRadius: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const statsTbody = document.querySelector('#insuranceStatsTable tbody');
+      statsTbody.innerHTML = '';
+
+      labels.forEach(ins => {
+        const item = insuranceMap[ins];
+        const percentage = totalAmount > 0 ? ((item.total / totalAmount) * 100).toFixed(1) : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${ins}</strong></td>
+          <td>${item.count}</td>
+          <td style="color:var(--primary); font-weight:700;">${item.total.toFixed(3)}</td>
+          <td>${percentage}%</td>
+        `;
+        statsTbody.appendChild(tr);
+      });
+    }
+
     // --- الأحداث وإدارة التفاعلات ---
     compSearch.addEventListener('input',()=>{ renderCompOptions(compSearch.value); });
     compSelect.addEventListener('change',updateUnitOnSelect);
@@ -833,7 +1190,6 @@
       downloadBlob(csv, `تقرير_أضرار_${(new Date()).toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
     });
 
-    // دالة مساعدة لتنسيق التاريخ بدون انقلاب مع إضافة حرف م
     function formatDateWithM(dateStr) {
       if(!dateStr) return '';
       const parts = dateStr.split('-');
@@ -843,38 +1199,20 @@
       return dateStr + 'م';
     }
 
-    // تصدير وطباعة تقرير PDF رسمية (تم تعديل التواريخ لتظهر مضبوطة مع حرف م)
-    exportPdfBtn.addEventListener('click', () => {
-      const policeRef = document.getElementById('policeRefNo').value || '2026/أ/136256';
-      const station = document.getElementById('policeStation').value || 'شرطة محضة';
-      
-      const rawNoticeDate = document.getElementById('policeNoticeDate').value || '2026-07-26';
-      const rawAccDate = document.getElementById('accidentDate').value || '2026-07-25';
-      
-      // التنسيق المضبوط للتواريخ مع حرف م
-      const noticeDateFormatted = formatDateWithM(rawNoticeDate);
-      const accDateFormatted = formatDateWithM(rawAccDate);
+    window.previewArchivePdf = function(id) {
+      const item = savedReports.find(r => r.id === id);
+      if(item) printPdfDoc(item);
+    };
 
-      const location = document.getElementById('accidentLocation').value || 'الشارع العام محضة البريمي قبل جسر كحل';
-      const vehicle = document.getElementById('vehicleNo').value || '4961 ( ح م ) تجاري';
-      const driver = document.getElementById('driverName').value || 'نعيم علي';
-      const manager = document.getElementById('managerName').value || 'المهندس / عزان بن عبد الله بن سالم أمبو علي';
-      const signer = document.getElementById('signerName').value || 'فاطمة بنت علي بن عبدالله المنذرية';
-      const signerTitle = document.getElementById('signerTitle').value || 'رئيسة قسم الشؤون الإدارية والمالية';
-
-      // تاريخ اليوم مصحح من الاتجاهات المقلوبة مع إضافة حرف م
+    function printPdfDoc(data) {
       const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      const dateTodayStr = `${yyyy}/${mm}/${dd}م`;
+      const dateTodayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}م`;
 
       let tableRows = '';
-      incidents.forEach((it, idx) => {
+      data.incidents.forEach((it, idx) => {
         const rowTotal = (it.qty * it.price);
         const totalRial = Math.floor(rowTotal);
         const totalBaisa = Math.round((rowTotal - totalRial) * 1000);
-        
         const unitPriceRial = Math.floor(it.price);
         const unitPriceBaisa = Math.round((it.price - unitPriceRial) * 1000);
 
@@ -887,11 +1225,10 @@
             <td style="text-align: center;">${unitPriceRial}</td>
             <td style="text-align: center;">${String(totalBaisa).padStart(3, '0')}</td>
             <td style="text-align: center;">${totalRial}</td>
-          </tr>
-        `;
+          </tr>`;
       });
 
-      const grandTotal = incidents.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      const grandTotal = data.grandTotal;
       const totalRialAll = Math.floor(grandTotal);
       const totalBaisaAll = Math.round((grandTotal - totalRialAll) * 1000);
 
@@ -899,166 +1236,56 @@
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>تقييم أضرار - ${policeRef}</title>
+        <title>تقييم أضرار - ${data.policeRef}</title>
         <style>
-          body { 
-            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; 
-            padding: 30px; 
-            color: #000; 
-            line-height: 1.8;
-            font-size: 14px;
-          }
-          .gov-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-          }
-          .gov-title-right { text-align: right; font-weight: bold; line-height: 1.4; }
-          .gov-title-left { text-align: left; font-weight: bold; line-height: 1.4; font-size: 13px; }
+          body { font-family: 'Cairo', sans-serif; padding: 30px; color: #000; line-height: 1.8; font-size: 14px; }
+          .gov-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
           .basmala { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 15px; }
-          
-          .doc-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            font-weight: bold;
-          }
-
-          .date-fix {
-            direction: ltr;
-            unicode-bidi: embed;
-            display: inline-block;
-          }
-
-          .subject-box {
-            margin: 20px 0;
-            font-size: 15px;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          th, td {
-            border: 1px solid #000;
-            padding: 6px 8px;
-            font-size: 13px;
-          }
-          th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
-          
-          .total-row td { font-weight: bold; background-color: #fafafa; }
-
-          .footer-instructions {
-            margin-top: 25px;
-            text-align: justify;
-            line-height: 1.8;
-          }
-
-          .signature-block {
-            margin-top: 40px;
-            float: left;
-            text-align: center;
-            width: 300px;
-            font-weight: bold;
-          }
-
-          @media print {
-            body { padding: 15px; }
-          }
+          .doc-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; }
+          .date-fix { direction: ltr; unicode-bidi: embed; display: inline-block; }
+          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          th, td { border: 1px solid #000; padding: 6px 8px; font-size: 13px; }
+          th { background-color: #f2f2f2; text-align: center; }
+          .signature-block { margin-top: 40px; float: left; text-align: center; width: 300px; font-weight: bold; }
         </style>
       </head>
       <body>
-
         <div class="gov-header">
-          <div class="gov-title-right">
-            سلطنة عمان<br>
-            وزارة النقل والاتصالات وتقنية المعلومات
-          </div>
-          <div style="text-align: center;">
-            <h3 style="margin: 0;">Sultanate of Oman</h3>
-          </div>
-          <div class="gov-title-left">
-            Sultanate of Oman<br>
-            Ministry of Transport, Communications<br>
-            & Information Technology
-          </div>
+          <div>سلطنة عمان<br>وزارة النقل والاتصالات وتقنية المعلومات</div>
+          <div style="text-align: center;"><h3>Sultanate of Oman</h3></div>
+          <div style="text-align: left;">Ministry of Transport, Communications<br>& Information Technology</div>
         </div>
-
         <div class="basmala">بسم الله الرحمن الرحيم</div>
-
         <div class="doc-info">
-          <div>
-            الرقم: و ن ت ت م / ${policeRef}<br>
-            التاريخ: <span class="date-fix">${dateTodayStr}</span>
-          </div>
-          <div style="text-align: left;">
-            الموافق: ${new Date().toLocaleDateString('ar-TN-u-ca-islamic', {day: 'numeric', month: 'long', year: 'numeric'})}
-          </div>
+          <div>الرقم: و ن ت ت م / ${data.policeRef}<br>التاريخ: <span class="date-fix">${dateTodayStr}</span></div>
         </div>
-
-        <div style="font-weight: bold; margin-bottom: 10px;">
-          المحترم / ${manager}<br>
-          مدير دائرة الطرق بمحافظة البريمي
-        </div>
-
-        <div>السلام عليكم ورحمة الله وبركاته... وبعد ،،،</div>
-
-        <div class="subject-box">
-          <strong>الموضوع : تقييم أضرار مادية ${station} (${policeRef})</strong>
-        </div>
-
-        <div>
-          بالإشارة إلى القضية رقم (<strong>${policeRef}</strong>) بتاريخ <strong class="date-fix">${noticeDateFormatted}</strong> تفيد عن وقوع حادث سير بتاريخ <strong class="date-fix">${accDateFormatted}</strong> في <strong>${location}</strong> بالمركبة رقم <strong>${vehicle}</strong> بقيادة السائق / <strong>${driver}</strong>.
-          <br>
-          نود إفادتكم بأنه بعد معاينة الحادث فقد قدرت الأضرار على النحو التالي :-
-        </div>
-
+        <div style="font-weight: bold;">المحترم / ${data.manager}<br>مدير دائرة الطرق بمحافظة البريمي</div>
+        <br><div>السلام عليكم ورحمة الله وبركاته... وبعد ،،،</div>
+        <div style="margin: 15px 0;"><strong>الموضوع : تقييم أضرار مادية ${data.policeStation} (${data.policeRef})</strong></div>
+        <div>بالإشارة إلى القضية رقم (<strong>${data.policeRef}</strong>) بتاريخ <strong class="date-fix">${formatDateWithM(data.noticeDate)}</strong> تفيد عن وقوع حادث سير بتاريخ <strong class="date-fix">${formatDateWithM(data.accidentDate)}</strong> في <strong>${data.location}</strong> بالمركبة رقم <strong>${data.vehicle}</strong> بقيادة السائق / <strong>${data.driver}</strong>.</div>
         <table>
           <thead>
             <tr>
-              <th rowspan="2" style="width: 30px;">م</th>
-              <th rowspan="2">نوع الأضرار</th>
-              <th rowspan="2" style="width: 50px;">العدد</th>
-              <th colspan="2">القيمة التقديرية</th>
-              <th colspan="2">الإجمالي</th>
+              <th rowspan="2">م</th><th rowspan="2">نوع الأضرار</th><th rowspan="2">العدد</th><th colspan="2">القيمة التقديرية</th><th colspan="2">الإجمالي</th>
             </tr>
-            <tr>
-              <th style="width: 60px;">بيسة</th>
-              <th style="width: 60px;">ريال</th>
-              <th style="width: 60px;">بيسة</th>
-              <th style="width: 60px;">ريال</th>
-            </tr>
+            <tr><th>بيسة</th><th>ريال</th><th>بيسة</th><th>ريال</th></tr>
           </thead>
           <tbody>
             ${tableRows}
-            <tr class="total-row">
+            <tr style="font-weight:bold;">
               <td colspan="3" style="text-align: center;">الإجمالي الكلي</td>
               <td style="text-align: center;">${String(totalBaisaAll).padStart(3, '0')}</td>
               <td style="text-align: center;">${totalRialAll}</td>
               <td style="text-align: center;">${String(totalBaisaAll).padStart(3, '0')}</td>
               <td style="text-align: center;">${totalRialAll}</td>
             </tr>
-            <tr class="total-row">
-              <td colspan="7">
-                <strong>بالأحرف:</strong> ${document.getElementById('totalWords').textContent}
-              </td>
-            </tr>
+            <tr><td colspan="7"><strong>بالأحرف:</strong> ${numberToArabicWords(grandTotal)} فقط لا غير</td></tr>
           </tbody>
         </table>
-
-        <div class="footer-instructions">
-          عليه يرجى التكرم بإخطار المتسبب في الحادث بدفع مبالغ التعويضات عن طريق بطاقة السحب الائتماني أو موافاتنا بنسخة من مطالبة شركة التأمين بالإضافة إلى الإعلان الأولي والنهائي وهذا للأهمية.
-        </div>
-
         <div class="signature-block">
-          <div>${signer}</div>
-          <div style="font-weight: normal; margin-top: 5px;">${signerTitle}</div>
+          <div>${data.signer}</div>
+          <div style="font-weight: normal; margin-top: 5px;">${data.signerTitle}</div>
         </div>
-
       </body>
       </html>`;
 
@@ -1067,6 +1294,25 @@
       w.document.close();
       w.focus();
       setTimeout(() => { w.print(); }, 500);
+    }
+
+    // تصدير وطباعة تقرير PDF الحادث الحالي
+    exportPdfBtn.addEventListener('click', () => {
+      const currentData = {
+        policeRef: document.getElementById('policeRefNo').value || '2026/أ/136256',
+        policeStation: document.getElementById('policeStation').value || 'شرطة محضة',
+        noticeDate: document.getElementById('policeNoticeDate').value || '2026-07-26',
+        accidentDate: document.getElementById('accidentDate').value || '2026-07-25',
+        location: document.getElementById('accidentLocation').value || 'الشارع العام محضة البريمي قبل جسر كحل',
+        vehicle: document.getElementById('vehicleNo').value || '4961 ( ح م ) تجاري',
+        driver: document.getElementById('driverName').value || 'نعيم علي',
+        manager: document.getElementById('managerName').value || 'المهندس / عزان بن عبد الله بن سالم أمبو علي',
+        signer: document.getElementById('signerName').value || 'فاطمة بنت علي بن عبدالله المنذرية',
+        signerTitle: document.getElementById('signerTitle').value || 'رئيسة قسم الشؤون الإدارية والمالية',
+        incidents: incidents,
+        grandTotal: incidents.reduce((sum, item) => sum + (item.qty * item.price), 0)
+      };
+      printPdfDoc(currentData);
     });
 
     function downloadBlob(content, filename, mime){ 
