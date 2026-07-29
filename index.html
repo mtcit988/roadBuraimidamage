@@ -843,7 +843,6 @@
                 <th scope="col">اسم السائق</th>
                 <th scope="col">شركة التأمين</th>
                 <th scope="col">الإجمالي (ر.ع)</th>
-                <th scope="col">حالة الإصلاح</th>
                 <th scope="col" style="text-align: center;">الإجراءات</th>
               </tr>
             </thead>
@@ -1285,15 +1284,11 @@
       );
 
       if(filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">لا توجد حوادث محفوظة في الأرشيف</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">لا توجد حوادث محفوظة في الأرشيف</td></tr>`;
         return;
       }
 
       filtered.forEach(r => {
-        const isRepaired = r.repairStatus === 'تم الإصلاح';
-        const badgeClass = isRepaired ? 'status-done' : 'status-pending';
-        const statusText = r.repairStatus || 'قيد الانتظار';
-        
         const bImgCount = r.beforeImages ? r.beforeImages.length : (r.beforeImage ? 1 : 0);
         const aImgCount = r.afterImages ? r.afterImages.length : (r.afterImage ? 1 : 0);
         const totalImgCount = bImgCount + aImgCount;
@@ -1305,7 +1300,6 @@
           <td>${r.driver}</td>
           <td>${r.insurance}</td>
           <td><strong style="color:var(--primary);">${r.grandTotal.toFixed(3)}</strong></td>
-          <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
           <td style="text-align: center;">
             <button class="btn btn-secondary btn-sm" onclick="openImageModal('${r.id}')" title="إدارة وإستعراض الصور">📷 الصور (${totalImgCount})</button>
             <button class="btn btn-primary btn-sm" onclick="previewArchivePdf('${r.id}')">🖨️ PDF</button>
@@ -1389,7 +1383,7 @@
             afterImages: currentAfterImages,
             repairStatus: 'تم الإصلاح'
           });
-          alert(`✅ تم رفع (${files.length}) صورة بنجاح وتحديث حالة البلاغ إلى (تم الإصلاح)`);
+          alert(`✅ تم رفع (${files.length}) صورة بنجاح!`);
           e.target.value = ""; 
         } catch(err) {
           console.error("Error updating images:", err);
