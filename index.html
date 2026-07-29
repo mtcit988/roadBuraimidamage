@@ -191,21 +191,9 @@
     .kpi-card .kpi-value { font-size: 1.5rem; font-weight: 800; color: var(--primary-dark); margin-top: 5px; }
 
     /* أشكال المدخلات */
-    .form-group {
-      margin-bottom: 14px;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin-bottom: 4px;
-    }
+    .form-group { margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
     input, select, textarea {
       width: 100%;
       padding: 9px 12px;
@@ -218,176 +206,114 @@
       transition: all 0.2s ease;
     }
     input:focus, select:focus {
-      outline: none;
-      border-color: var(--primary);
+      outline: none; border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
     }
-    input[readonly] {
-      background-color: #f1f5f9;
-      color: #64748b;
-    }
+    input[readonly] { background-color: #f1f5f9; color: #64748b; }
 
     /* الأزرار */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 9px 16px;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all 0.2s ease;
-      gap: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 9px 16px; border-radius: 6px; font-family: inherit;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      border: 1px solid transparent; transition: all 0.2s ease; gap: 6px;
     }
-    .btn-primary {
-      background-color: var(--primary);
-      color: #fff;
-    }
-    .btn-primary:hover {
-      background-color: #1e40af;
-    }
-    .btn-success {
-      background-color: var(--success);
-      color: #fff;
-    }
-    .btn-success:hover {
-      background-color: #15803d;
-    }
-    .btn-secondary {
-      background-color: #fff;
-      color: var(--text-dark);
-      border-color: var(--border);
-    }
-    .btn-secondary:hover {
-      background-color: #f8fafc;
-    }
-    .btn-danger {
-      background-color: #fef2f2;
-      color: var(--danger);
-      border-color: #fecaca;
-    }
-    .btn-danger:hover {
-      background-color: var(--danger);
-      color: #fff;
-    }
-    .btn-sm {
-      padding: 4px 8px;
-      font-size: 0.75rem;
-    }
+    .btn-primary { background-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background-color: #1e40af; }
+    .btn-success { background-color: var(--success); color: #fff; }
+    .btn-success:hover { background-color: #15803d; }
+    .btn-secondary { background-color: #fff; color: var(--text-dark); border-color: var(--border); }
+    .btn-secondary:hover { background-color: #f8fafc; }
+    .btn-danger { background-color: #fef2f2; color: var(--danger); border-color: #fecaca; }
+    .btn-danger:hover { background-color: var(--danger); color: #fff; }
+    .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
 
     /* الجداول */
-    .table-responsive {
-      overflow-x: auto;
-      margin-top: 10px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: right;
-    }
-    th {
-      background-color: #f8fafc;
-      color: var(--text-dark);
-      font-weight: 700;
-      padding: 10px 12px;
-      border-bottom: 2px solid var(--border);
-      font-size: 0.85rem;
-    }
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.875rem;
-    }
+    .table-responsive { overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; text-align: right; }
+    th { background-color: #f8fafc; color: var(--text-dark); font-weight: 700; padding: 10px 12px; border-bottom: 2px solid var(--border); font-size: 0.85rem; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
     tr:last-child td { border-bottom: none; }
-    tfoot td {
-      background-color: #f8fafc;
-      font-weight: 700;
-      border-top: 2px solid var(--border);
-    }
+    tfoot td { background-color: #f8fafc; font-weight: 700; border-top: 2px solid var(--border); }
 
     /* الشارات badges */
-    .status-badge {
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-    }
+    .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
     .status-pending { background-color: #fef3c7; color: #b45309; }
     .status-done { background-color: #dcfce7; color: #15803d; }
 
+    /* شبكة استعراض الصور متعدد المعاينات */
+    .image-grid-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .image-preview-item {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      height: 90px;
+      background: #f1f5f9;
+    }
+    .image-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     /* النافذة المنبثقة (Modal) للصور */
     .modal {
-      display: none;
-      position: fixed;
+      display: none; position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
+      background: rgba(0,0,0,0.6); z-index: 1000;
+      align-items: center; justify-content: center;
     }
     .modal.active { display: flex; }
     .modal-content {
-      background: #fff;
-      border-radius: var(--radius);
-      padding: 20px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 90vh;
-      overflow-y: auto;
-      position: relative;
+      background: #fff; border-radius: var(--radius); padding: 20px;
+      width: 90%; max-width: 900px; max-height: 90vh;
+      overflow-y: auto; position: relative;
     }
     .modal-close {
-      position: absolute;
-      top: 15px; left: 15px;
-      background: none; border: none;
-      font-size: 1.5rem; cursor: pointer;
+      position: absolute; top: 15px; left: 15px;
+      background: none; border: none; font-size: 1.5rem; cursor: pointer;
     }
     .image-preview-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-top: 15px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;
+    }
+    @media (max-width: 768px) {
+      .image-preview-container { grid-template-columns: 1fr; }
     }
     .img-box {
-      border: 1px dashed var(--border);
-      border-radius: 6px;
-      padding: 10px;
-      text-align: center;
-      background: #fafafa;
+      border: 1px dashed var(--border); border-radius: 6px;
+      padding: 10px; text-align: center; background: #fafafa;
     }
-    .img-box img {
-      max-width: 100%;
-      max-height: 220px;
+    .img-box-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+    .img-box-grid img {
+      width: 100%;
+      height: 120px;
       object-fit: cover;
       border-radius: 4px;
-      margin-top: 8px;
+      border: 1px solid var(--border);
     }
 
-    /* إشعارات الحالات */
     .readonly-banner {
-      background-color: #fffbeeb3;
-      border: 1px solid #fde68a;
-      color: #b45309;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      background-color: #fffbeeb3; border: 1px solid #fde68a; color: #b45309;
+      padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; margin-top: 10px;
+      display: flex; align-items: center; gap: 6px;
     }
 
-    /* الذيل */
     footer {
-      text-align: center;
-      padding: 20px;
-      color: #64748b;
-      font-size: 0.8rem;
-      border-top: 1px solid var(--border);
-      margin-top: 40px;
+      text-align: center; padding: 20px; color: #64748b;
+      font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 40px;
     }
   </style>
 </head>
@@ -453,18 +379,16 @@
               </div>
             </div>
 
-            <!-- إرفاق صورة قبل الإصلاح -->
+            <!-- إرفاق صور متعددة قبل الإصلاح -->
             <div class="form-group" style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 10px;">
-              <label>📷 صورة الضرر (قبل الإصلاح)</label>
-              <input id="beforeImageInput" type="file" accept="image/*">
-              <div id="beforeImagePreview" style="margin-top: 8px; display: none;">
-                <img id="beforeImgTag" src="" style="max-height: 120px; border-radius: 4px; border: 1px solid var(--border);">
-              </div>
+              <label>📸 صور الأضرار للمكونات (قبل الإصلاح) - يمكنك تحديد عدة صور</label>
+              <input id="beforeImageInput" type="file" accept="image/*" multiple>
+              <div id="beforeImagesContainer" class="image-grid-preview"></div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 15px;">
               <button id="addBtn" class="btn btn-primary">إضافة للقائمة</button>
-              <button id="clearBtn" class="btn btn-secondary">تفريغ الحقول</button>
+              <button id="clearBtn" class="btn btn-secondary">تفريغ الحقول والصور</button>
             </div>
           </div>
 
@@ -502,7 +426,7 @@
             </div>
 
             <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-              <button id="saveToCloudBtn" class="btn btn-success">☁️ حفظ التقرير في الأرشيف (Firebase)</button>
+              <button id="saveToCloudBtn" class="btn btn-success">☁️ حفظ التقرير والصور في الأرشيف</button>
               <button id="exportPdf" class="btn btn-primary">🖨️ طباعة / حفظ التقرير (PDF)</button>
               <button id="exportCsv" class="btn btn-secondary">📊 تصدير Excel (CSV)</button>
               <button id="resetAll" class="btn btn-danger" style="margin-right: auto;">إعادة ضبط البيانات</button>
@@ -698,17 +622,17 @@
 
   </div>
 
-  <!-- النافذة المنبثقة لإدارة واستعراض صور الأرشيف -->
+  <!-- النافذة المنبثقة لإدارة واستعراض صور الأرشيف (الصور المتعددة) -->
   <div id="imageModal" class="modal">
     <div class="modal-content">
       <button class="modal-close" onclick="closeImageModal()">&times;</button>
-      <h3 style="margin-top: 0; color: var(--primary);">🖼️ صور الأضرار والإصلاح للمرجع: <span id="modalPoliceRef"></span></h3>
+      <h3 style="margin-top: 0; color: var(--primary);">🖼️ معرض صور الأضرار للمرجع: <span id="modalPoliceRef"></span></h3>
       
       <div class="image-preview-container">
         <div class="img-box">
-          <h4>🔴 صورة الضرر (قبل الإصلاح)</h4>
-          <div id="modalBeforeContainer">
-            <p style="color: #94a3b8;">لا توجد صورة</p>
+          <h4>🔴 صور الأضرار (قبل الإصلاح)</h4>
+          <div id="modalBeforeContainer" class="img-box-grid">
+            <p style="color: #94a3b8; grid-column: 1/-1;">لا توجد صور</p>
           </div>
         </div>
 
@@ -717,7 +641,7 @@
           <div id="modalAfterContainer">
             <p style="color: #94a3b8;">لا توجد صورة مرفوعة</p>
           </div>
-          <div style="margin-top: 10px;">
+          <div style="margin-top: 15px;">
             <label for="afterImageUpload" class="btn btn-secondary btn-sm" style="cursor: pointer;">📤 رفع/تحديث صورة بعد الإصلاح</label>
             <input type="file" id="afterImageUpload" accept="image/*" style="display: none;" onchange="handleAfterImageUpload(event)">
           </div>
@@ -725,7 +649,7 @@
       </div>
 
       <div style="margin-top: 20px; text-align: left;">
-        <button class="btn btn-secondary" onclick="closeImageModal()">إغلاق</button>
+        <button class="btn btn-secondary" onclick="closeImageModal()">إغلاق المعرض</button>
       </div>
     </div>
   </div>
@@ -793,21 +717,20 @@
     const saveToCloudBtn = document.getElementById('saveToCloudBtn');
 
     const beforeImageInput = document.getElementById('beforeImageInput');
-    const beforeImagePreview = document.getElementById('beforeImagePreview');
-    const beforeImgTag = document.getElementById('beforeImgTag');
+    const beforeImagesContainer = document.getElementById('beforeImagesContainer');
 
     // --- حالة التطبيق ---
     let prices = [];
     let incidents = [];
     let savedReports = [];
     let myChart = null;
-    let currentBeforeBase64 = ""; // لتخزين صورة قبل الإصلاح
+    let beforeImagesList = []; // مصفوفة لتخزين جميع الصور المضغوطة قبل الإصلاح
     let activeDocForImages = null;
 
     const uid = () => Math.random().toString(36).slice(2,9);
 
-    // دالة ضغط الصورة التلقائية لضمان حفظها بدون مشاكل حجم
-    function compressImage(file, maxWidth = 800, quality = 0.7) {
+    // دالة ضغط الصور لتصغير الحجم قبل الحفظ
+    function compressImage(file, maxWidth = 800, quality = 0.65) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -850,20 +773,37 @@
       }catch(e){ prices = DEFAULT_PRICES; incidents = []; }
     }
 
-    // --- معالجة اختيار صورة قبل الإصلاح ضغطاً وعرضاً ---
+    // --- التعامل مع رفع الصور المتعددة ---
     beforeImageInput.addEventListener('change', async function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        currentBeforeBase64 = await compressImage(file);
-        beforeImgTag.src = currentBeforeBase64;
-        beforeImagePreview.style.display = 'block';
-      } else {
-        currentBeforeBase64 = "";
-        beforeImagePreview.style.display = 'none';
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        for (const file of files) {
+          const compressed = await compressImage(file);
+          beforeImagesList.push(compressed);
+        }
+        renderBeforeImagesPreview();
       }
     });
 
-    // --- الربط المباشر المباشر مع Firestore ---
+    function renderBeforeImagesPreview() {
+      beforeImagesContainer.innerHTML = '';
+      beforeImagesList.forEach((src, idx) => {
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+        div.innerHTML = `
+          <img src="${src}">
+          <button onclick="removeBeforeImage(${idx})" style="position:absolute; top:2px; right:2px; background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer; font-size:10px;">×</button>
+        `;
+        beforeImagesContainer.appendChild(div);
+      });
+    }
+
+    window.removeBeforeImage = function(index) {
+      beforeImagesList.splice(index, 1);
+      renderBeforeImagesPreview();
+    };
+
+    // --- المزامنة المباشرة Firestore ---
     onSnapshot(collection(db, "accidents_archive"), (snapshot) => {
       savedReports = [];
       snapshot.forEach((doc) => {
@@ -958,14 +898,12 @@
       return res || "صفر ريال عماني";
     }
 
-    // --- عرض خيارات المكونات ---
     function renderCompOptions(filter=''){
       const filtered = prices.filter(p=>p.name.includes(filter));
       compSelect.innerHTML = filtered.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
       updateUnitOnSelect();
     }
 
-    // --- عرض جدول الأسعار ---
     function renderPriceTable(){
       priceTableBody.innerHTML='';
       prices.forEach(p=>{
@@ -981,7 +919,6 @@
       renderCompOptions(compSearch.value);
     }
 
-    // --- عرض جدول التلفيات ---
     function renderIncidents(){
       incTableBody.innerHTML='';
       let total=0;
@@ -1007,7 +944,7 @@
       unitInput.value=sel?sel.unit:'';
     }
 
-    // --- حفظ الحادث السحابي بـ Firebase ---
+    // --- حفظ التقرير في الأرشيف ---
     saveToCloudBtn.addEventListener('click', async () => {
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
       if(incidents.length === 0) return alert('لا توجد أضرار مسجلة للحادث للحفظ!');
@@ -1033,7 +970,7 @@
         signerTitle: document.getElementById('signerTitle').value,
         incidents: [...incidents],
         grandTotal: grandTotal,
-        beforeImage: currentBeforeBase64 || null, // حفظ الصورة بأمان
+        beforeImages: [...beforeImagesList], // حفظ مصفوفة الصور المتعددة
         afterImage: null,                         
         repairStatus: 'قيد الانتظار',             
         createdAt: serverTimestamp()
@@ -1041,7 +978,7 @@
 
       try {
         await setDoc(doc(db, "accidents_archive", docId), reportData, { merge: true });
-        alert('✅ تم حفظ التقرير والصورة بنجاح في أرشفة Firebase السحابية!');
+        alert(`✅ تم حفظ التقرير بنجاح وبداخله عدد (${beforeImagesList.length}) صورة للضرر!`);
       } catch (error) {
         console.error("Error saving to Firebase: ", error);
         alert('❌ حدث خطأ أثناء الحفظ السحابي!');
@@ -1069,6 +1006,7 @@
         const isRepaired = r.repairStatus === 'تم الإصلاح';
         const badgeClass = isRepaired ? 'status-done' : 'status-pending';
         const statusText = r.repairStatus || 'قيد الانتظار';
+        const imgCount = r.beforeImages ? r.beforeImages.length : (r.beforeImage ? 1 : 0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -1079,7 +1017,7 @@
           <td><strong style="color:var(--primary);">${r.grandTotal.toFixed(3)}</strong></td>
           <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
           <td style="text-align: center;">
-            <button class="btn btn-secondary btn-sm" onclick="openImageModal('${r.id}')" title="إدارة وإستعراض صور قبل وبعد الإصلاح">📷 الصور</button>
+            <button class="btn btn-secondary btn-sm" onclick="openImageModal('${r.id}')" title="إدارة وإستعراض الصور">📷 الصور (${imgCount})</button>
             <button class="btn btn-primary btn-sm" onclick="previewArchivePdf('${r.id}')">🖨️ PDF</button>
             <button class="btn btn-secondary btn-sm" onclick="loadArchiveToEdit('${r.id}')">✏️ تعديل</button>
             <button class="btn btn-danger btn-sm" onclick="deleteArchiveDoc('${r.id}')">🗑️</button>
@@ -1089,7 +1027,7 @@
       });
     }
 
-    // --- وظائف النافذة المنبثقة للصور (Modal) ---
+    // --- عرض الصور داخل Modal النافذة المنبثقة ---
     window.openImageModal = function(id) {
       const docData = savedReports.find(r => r.id === id);
       if(!docData) return;
@@ -1098,15 +1036,25 @@
       document.getElementById('modalPoliceRef').textContent = docData.policeRef;
       
       const beforeContainer = document.getElementById('modalBeforeContainer');
-      if(docData.beforeImage) {
-        beforeContainer.innerHTML = `<img src="${docData.beforeImage}" alt="صورة قبل الإصلاح" style="max-width:100%; max-height:220px; border-radius:4px;">`;
+      beforeContainer.innerHTML = '';
+
+      // قراءة الصور المتعددة سواء كانت مصفوفة أو صورة واحدة مفردة
+      const beforeArr = docData.beforeImages || (docData.beforeImage ? [docData.beforeImage] : []);
+
+      if(beforeArr.length > 0) {
+        beforeArr.forEach(imgSrc => {
+          const img = document.createElement('img');
+          img.src = imgSrc;
+          img.alt = "صورة الضرر قبل الإصلاح";
+          beforeContainer.appendChild(img);
+        });
       } else {
-        beforeContainer.innerHTML = `<p style="color: #94a3b8; padding: 20px;">لا توجد صورة مسجلة قبل الإصلاح</p>`;
+        beforeContainer.innerHTML = `<p style="color: #94a3b8; grid-column: 1/-1;">لا توجد صور متوفرة قبل الإصلاح</p>`;
       }
 
       const afterContainer = document.getElementById('modalAfterContainer');
       if(docData.afterImage) {
-        afterContainer.innerHTML = `<img src="${docData.afterImage}" alt="صورة بعد الإصلاح" style="max-width:100%; max-height:220px; border-radius:4px;">`;
+        afterContainer.innerHTML = `<img src="${docData.afterImage}" alt="صورة بعد الإصلاح" style="max-width:100%; max-height:220px; border-radius:4px; border:1px solid var(--border);">`;
       } else {
         afterContainer.innerHTML = `<p style="color: #94a3b8; padding: 20px;">لم يتم رفع صورة بعد الإصلاح بعد</p>`;
       }
@@ -1131,16 +1079,15 @@
             afterImage: afterBase64,
             repairStatus: 'تم الإصلاح'
           });
-          alert('✅ تم إضافة صورة بعد الإصلاح وتحديث حالة البلاغ إلى (تم الإصلاح)');
+          alert('✅ تم رفع صورة بعد الإصلاح وتحديث حالة البلاغ إلى (تم الإصلاح)');
           openImageModal(activeDocForImages.id); 
         } catch(err) {
           console.error("Error updating image:", err);
-          alert('❌ حدث خطأ أثناء تحفيز صورة بعد الإصلاح');
+          alert('❌ حدث خطأ أثناء رفع صورة بعد الإصلاح');
         }
       }
     };
 
-    // --- تحميل حادث من الأرشيف للتعديل ---
     window.loadArchiveToEdit = function(id) {
       const item = savedReports.find(r => r.id === id);
       if(!item) return;
@@ -1156,14 +1103,8 @@
         document.getElementById('insuranceCompany').value = item.insurance;
         document.getElementById('policyNo').value = item.policyNo;
         
-        if(item.beforeImage) {
-          currentBeforeBase64 = item.beforeImage;
-          beforeImgTag.src = currentBeforeBase64;
-          beforeImagePreview.style.display = 'block';
-        } else {
-          currentBeforeBase64 = "";
-          beforeImagePreview.style.display = 'none';
-        }
+        beforeImagesList = item.beforeImages || (item.beforeImage ? [item.beforeImage] : []);
+        renderBeforeImagesPreview();
 
         incidents = [...item.incidents];
         saveToStorage();
@@ -1172,7 +1113,6 @@
       }
     };
 
-    // --- حذف من الأرشيف السحابي ---
     window.deleteArchiveDoc = async function(id) {
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
       if(confirm('هل تريد حذف هذا التقرير نهائياً من أرشيف Firebase؟')) {
@@ -1185,7 +1125,6 @@
       }
     };
 
-    // --- عرض التقارير والإحصائيات ---
     function renderStatistics() {
       const totalAmount = savedReports.reduce((sum, r) => sum + r.grandTotal, 0);
       const totalCount = savedReports.length;
@@ -1235,7 +1174,6 @@
       });
     }
 
-    // --- الأحداث وإدارة التفاعلات ---
     compSearch.addEventListener('input',()=>{ renderCompOptions(compSearch.value); });
     compSelect.addEventListener('change',updateUnitOnSelect);
 
@@ -1253,8 +1191,8 @@
     clearBtn.addEventListener('click',()=>{ 
       qtyInput.value=1; 
       beforeImageInput.value = "";
-      currentBeforeBase64 = "";
-      beforeImagePreview.style.display = 'none';
+      beforeImagesList = [];
+      renderBeforeImagesPreview();
     });
 
     priceTableBody.addEventListener('click',(e)=>{
@@ -1310,7 +1248,6 @@
       location.reload();
     });
 
-    // تصدير CSV
     exportCsvBtn.addEventListener('click',()=>{
       let csv='\uFEFF';
       csv+='المكوّن الضرر,الكمية,وحدة القياس,سعر الوحدة (ر.ع),الإجمالي (ر.ع)\n';
@@ -1432,7 +1369,6 @@
       setTimeout(() => { w.print(); }, 500);
     }
 
-    // تصدير وطباعة تقرير PDF الحادث الحالي
     exportPdfBtn.addEventListener('click', () => {
       const currentData = {
         policeRef: document.getElementById('policeRefNo').value || '2026/أ/136256',
@@ -1463,7 +1399,7 @@
       URL.revokeObjectURL(url); 
     }
 
-    // --- البدء ---
+    // البدء
     loadFromStorage(); 
     renderPriceTable(); 
     renderIncidents();
