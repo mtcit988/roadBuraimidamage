@@ -760,7 +760,7 @@
       {id: 'interlock_tiles', name: 'بلاط انترلوك', unit: 'متر مربع', price: 10.000},
       {id: 'tactile_tiles', name: 'بلاطات ذات الحبيبات الظاهرة', unit: 'متر مربع', price: 10.000},
 
-      // --- أطليَة ودهانات الطرق ---
+      // --- أطليَة بدهانات الطرق ---
       {id: 'road_marking_machine', name: 'دهان بالماكينة أصفر وأبيض', unit: 'متر مربع', price: 5.000},
       {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
     ];
@@ -1246,7 +1246,8 @@
           table { width: 100%; border-collapse: collapse; margin: 15px 0; }
           th, td { border: 1px solid #000; padding: 6px 8px; font-size: 13px; }
           th { background-color: #f2f2f2; text-align: center; }
-          .signature-block { margin-top: 40px; float: left; text-align: center; width: 300px; font-weight: bold; }
+          .closing-text { margin-top: 20px; font-size: 14px; text-align: justify; }
+          .signature-block { margin-top: 30px; float: left; text-align: center; width: 300px; font-weight: bold; }
         </style>
       </head>
       <body>
@@ -1282,6 +1283,14 @@
             <tr><td colspan="7"><strong>بالأحرف:</strong> ${numberToArabicWords(grandTotal)} فقط لا غير</td></tr>
           </tbody>
         </table>
+
+        <!-- الفقرة المطلوبة تحت الجدول وقبل التوقيع -->
+        <div class="closing-text">
+          عليه يرجى التكرم بإخطار المتسبب في الحادث بدفع مبالغ التعويضات عن طريق بطاقة السحب الائتماني أو موافاتنا بنسخة من مطالبة شركة التأمين بالإضافة إلى الإعلان الأولي والنهائي وهذا للأهمية.
+          <br><br>
+          وتفضلوا بقبول فائق الاحترام والتقدير ،،
+        </div>
+
         <div class="signature-block">
           <div>${data.signer}</div>
           <div style="font-weight: normal; margin-top: 5px;">${data.signerTitle}</div>
