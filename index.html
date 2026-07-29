@@ -308,6 +308,64 @@
       border-top: 2px solid var(--border);
     }
 
+    /* الشارات badges */
+    .status-badge {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .status-pending { background-color: #fef3c7; color: #b45309; }
+    .status-done { background-color: #dcfce7; color: #15803d; }
+
+    /* النافذة المنبثقة (Modal) للصور */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 15px; left: 15px;
+      background: none; border: none;
+      font-size: 1.5rem; cursor: pointer;
+    }
+    .image-preview-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .img-box {
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+      background: #fafafa;
+    }
+    .img-box img {
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
     /* إشعارات الحالات */
     .readonly-banner {
       background-color: #fffbeeb3;
@@ -392,6 +450,15 @@
               <div>
                 <label>وحدة القياس</label>
                 <input id="unit" readonly>
+              </div>
+            </div>
+
+            <!-- إضافة حقل رفـع صورة قبل الإصلاح -->
+            <div class="form-group" style="border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 10px;">
+              <label>📷 صورة الضرر (قبل الإصلاح)</label>
+              <input id="beforeImageInput" type="file" accept="image/*">
+              <div id="beforeImagePreview" style="margin-top: 8px; display: none;">
+                <img id="beforeImgTag" src="" style="max-height: 120px; border-radius: 4px; border: 1px solid var(--border);">
               </div>
             </div>
 
@@ -575,7 +642,7 @@
                 <th>اسم السائق</th>
                 <th>شركة التأمين</th>
                 <th>الإجمالي (ر.ع)</th>
-                <th>تاريخ الحفظ</th>
+                <th>حالة الإصلاح</th>
                 <th style="text-align: center;">الإجراءات</th>
               </tr>
             </thead>
@@ -631,6 +698,38 @@
 
   </div>
 
+  <!-- النافذة المنبثقة لإدارة واستعراض صور الأرشيف (قبل وبعد الإصلاح) -->
+  <div id="imageModal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeImageModal()">&times;</button>
+      <h3 style="margin-top: 0; color: var(--primary);">🖼️ صور الأضرار والإصلاح للمرجع: <span id="modalPoliceRef"></span></h3>
+      
+      <div class="image-preview-container">
+        <div class="img-box">
+          <h4>🔴 صورة الضرر (قبل الإصلاح)</h4>
+          <div id="modalBeforeContainer">
+            <p style="color: #94a3b8;">لا توجد صورة</p>
+          </div>
+        </div>
+
+        <div class="img-box">
+          <h4>🟢 صورة موقع الحادث (بعد الإصلاح)</h4>
+          <div id="modalAfterContainer">
+            <p style="color: #94a3b8;">لا توجد صورة مرفوعة</p>
+          </div>
+          <div style="margin-top: 10px;">
+            <label for="afterImageUpload" class="btn btn-secondary btn-sm" style="cursor: pointer;">📤 رفع/تحديث صورة بعد الإصلاح</label>
+            <input type="file" id="afterImageUpload" accept="image/*" style="display: none;" onchange="handleAfterImageUpload(event)">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; text-align: left;">
+        <button class="btn btn-secondary" onclick="closeImageModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
     وزارة النقل والاتصالات وتقنية المعلومات - دائرة الطرق بمحافظة البريمي - سلطنة عمان © 2026
   </footer>
@@ -638,7 +737,7 @@
   <!-- كود الفايربيس للربط السحابي -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // إعدادات Firebase الخاصة بمشروعك
     const firebaseConfig = {
@@ -657,7 +756,6 @@
 
     // --- البيانات الافتراضية ---
     const DEFAULT_PRICES = [
-      // --- البنود الأساسية ---
       {id: 'subgrade', name: 'طبقة الأساس المساعد (م٣)', unit: 'متر مكعب', price: 6.600},
       {id: 'aggregate', name: 'طبقة الأساس الحصوي (م٣)', unit: 'متر مكعب', price: 8.500},
       {id: 'prime_coat', name: 'طبقة التشريب (م٢)', unit: 'متر مربع', price: 0.400},
@@ -665,14 +763,10 @@
       {id: 'tack_coat', name: 'الطبقة اللاصقة', unit: 'متر مربع', price: 0.500},
       {id: 'asphalt_surface', name: 'طبقة الأسفلت السطحية', unit: 'متر مكعب', price: 75.000},
       {id: 'subbase', name: 'طبقة ما تحت الأساس', unit: 'متر مكعب', price: 5.000},
-
-      // --- أعمال الحفريات والقطع ---
       {id: 'exc_normal', name: 'الحفر في الأرض العادية', unit: 'متر مكعب', price: 5.000},
       {id: 'exc_soft_rock', name: 'الحفر في الأرض الصخرية اللينة', unit: 'متر مكعب', price: 10.000},
       {id: 'exc_hard_rock', name: 'الحفر في الأرض الصخرية الصلبة', unit: 'متر مكعب', price: 15.000},
       {id: 'asphalt_cut', name: 'قطع الأسفلت', unit: 'متر مربع', price: 4.000},
-
-      // --- اللوحات الإرشادية والتحذيرية ---
       {id: 'tri_sign_600', name: 'لوحة مثلثة قطر 600 مليمتر', unit: 'عدد', price: 45.000},
       {id: 'tri_sign_750', name: 'لوحة مثلثة قطر 750 مليمتر', unit: 'عدد', price: 52.500},
       {id: 'tri_sign_900', name: 'لوحة مثلثة قطر 900 مليمتر', unit: 'عدد', price: 60.000},
@@ -684,8 +778,6 @@
       {id: 'circ_sign_1200', name: 'لوحة دائرية قطر 1200 مليمتر', unit: 'عدد', price: 85.000},
       {id: 'rect_sign', name: 'لوحة مستطيلة أو مربعة أو سهمية', unit: 'متر مربع', price: 70.000},
       {id: 'gantry_sign_1', name: 'لوحات معلقة مع الإطار رقم 1', unit: 'متر مربع', price: 190.000},
-
-      // --- الأعمدة والقوائم ---
       {id: 'gantry_post_2', name: 'عمود اللوحة المعلقة رقم 2', unit: 'متر طولي', price: 500.000},
       {id: 'gantry_post_3', name: 'عمود اللوحة المعلقة رقم 3', unit: 'متر طولي', price: 250.000},
       {id: 'pole_2in', name: 'عمود إشارة قطر 2 بوصة', unit: 'عدد', price: 30.000},
@@ -695,14 +787,10 @@
       {id: 'pole_5in', name: 'عمود إشارة قطر 5 بوصة', unit: 'عدد', price: 90.000},
       {id: 'pole_6in', name: 'عمود إشارة قطر 6 بوصة', unit: 'عدد', price: 100.000},
       {id: 'pole_8in', name: 'عمود إشارة قطر 8 بوصة', unit: 'عدد', price: 120.000},
-
-      // --- تجهيزات معابر الطوارئ والمشاة ---
       {id: 'emerg_posts', name: 'أعمدة معابر الطوارئ', unit: 'عدد', price: 25.000},
       {id: 'emerg_chains', name: 'سلاسل حديدية لفتحات الطوارئ', unit: 'متر طولي', price: 4.000},
       {id: 'irish_cross_reflector', name: 'أعمدة المعابر الإيرلندية شاملاً العاكس', unit: 'عدد', price: 75.000},
       {id: 'irish_cross_30cm', name: 'أعمدة المعابر الإيرلندية بطول 30سم', unit: 'عدد', price: 32.000},
-
-      // --- الحواجز الواقية وملحقاتها ---
       {id: 'guardrail_unit', name: 'الحاجز الواقي 3.81', unit: 'عدد', price: 57.150},
       {id: 'guardrail_meter', name: 'الحاجز الواقي (م طولي)', unit: 'متر طولي', price: 15.000},
       {id: 'ground_beam', name: 'الكمرة المثبتة في الأرض', unit: 'عدد', price: 50.000},
@@ -710,23 +798,17 @@
       {id: 'support_post', name: 'العمود الحامل (شامل الفاصل والمسامير)', unit: 'عدد', price: 25.000},
       {id: 'pedestrian_guard_1', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 1', unit: 'متر طولي', price: 80.000},
       {id: 'pedestrian_guard_2', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 2', unit: 'متر طولي', price: 140.000},
-
-      // --- ممتصات الصدمات والعواكس ---
       {id: 'front_piece', name: 'القطعة الأمامية', unit: 'القطعة', price: 420.000},
       {id: 'front_support_pipes', name: 'الداعم الأمامي (أنابيب)', unit: 'القطعة', price: 100.000},
       {id: 'attenuator_belt_a', name: 'حزام امتصاص القوة نوع أ', unit: 'القطعة', price: 400.000},
       {id: 'attenuator_belt_b', name: 'حزام امتصاص القوة نوع ب', unit: 'القطعة', price: 400.000},
       {id: 'sliding_ring', name: 'شريحة الجانب الأمامي (الحلقة المتحركة)', unit: 'القطعة', price: 200.000},
       {id: 'double_reflector', name: 'عاكس من الجهتين', unit: 'القطعة', price: 6.000},
-
-      // --- العواكس وعيون القطط ---
       {id: 'single_reflector', name: 'عاكس من جهة واحدة', unit: 'القطعة', price: 4.000},
       {id: 'foldable_post_reflector_2s', name: 'عاكس من جهتين (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 20.000},
       {id: 'foldable_post_reflector_1s', name: 'عاكس من جهة واحدة (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 15.000},
       {id: 'cat_eyes_2s', name: 'عاكس من الجهتين (عيون القطط)', unit: 'القطعة', price: 6.500},
       {id: 'cat_eyes_1s', name: 'عاكس من جهة واحدة (عيون القطط)', unit: 'القطعة', price: 5.000},
-
-      // --- الأعمال الخرسانية والجسور ---
       {id: 'bridge_conc_rebar', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
       {id: 'bridge_prestressed_conc', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور مسبقة الإجهاد وبدون الكابل', unit: 'متر مكعب', price: 160.000},
       {id: 'precast_cable', name: 'الكابل للخرسانة المسبقة التجهيز', unit: 'الطن', price: 1700.000},
@@ -735,20 +817,14 @@
       {id: 'irish_cross_plain_conc', name: 'خرسانة عادية للمعابر الايرلندية (لايشمل حديد التسليح)', unit: 'متر مكعب', price: 80.000},
       {id: 'retaining_wall_conc', name: 'خرسانة مسلحة للحوائط الساندة شاملا حديد التسليح', unit: 'متر مكعب', price: 120.000},
       {id: 'general_plain_conc', name: 'خرسانة عادية لأي أعمال أخرى', unit: 'متر مكعب', price: 75.000},
-
-      // --- المعابر الأنبوبية ---
       {id: 'pipe_culvert_900_dbl', name: 'معابر أنبوبية قطر 900 مليمتر مزدوجة', unit: 'متر طولي', price: 180.000},
       {id: 'pipe_culvert_600_dbl', name: 'معابر أنبوبية قطر 600 مليمتر مزدوجة', unit: 'متر طولي', price: 130.000},
       {id: 'pipe_culvert_900_sgl', name: 'معابر أنبوبية قطر 900 مليمتر مفردة', unit: 'متر طولي', price: 110.000},
       {id: 'pipe_culvert_600_sgl', name: 'معابر أنبوبية قطر 600 مليمتر مفردة', unit: 'متر طولي', price: 80.000},
-
-      // --- الجابيون والربراب والحماية ---
       {id: 'riprap_dry', name: 'ربراب بدون مونه', unit: 'متر مكعب', price: 20.000},
       {id: 'riprap_mortared', name: 'ربراب بالمونه شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 30.000},
       {id: 'gabion', name: 'جابيون شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 25.000},
       {id: 'waterway_lining', name: 'تبطين المجاري المائية الخرسانية', unit: 'متر مكعب', price: 45.000},
-
-      // --- الحواجز الخرسانية وأحجار الرصيف ---
       {id: 'conc_barrier_std_h40', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 40 سم', unit: 'متر طولي', price: 65.000},
       {id: 'conc_barrier_std_h60', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 60 سم', unit: 'متر طولي', price: 80.000},
       {id: 'conc_barrier_std_h80', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 80 سم', unit: 'متر طولي', price: 100.000},
@@ -759,8 +835,6 @@
       {id: 'curb_mountable', name: 'أحجار الرصيف قابلة للصعود', unit: 'متر طولي', price: 15.000},
       {id: 'interlock_tiles', name: 'بلاط انترلوك', unit: 'متر مربع', price: 10.000},
       {id: 'tactile_tiles', name: 'بلاطات ذات الحبيبات الظاهرة', unit: 'متر مربع', price: 10.000},
-
-      // --- أطليَة بدهانات الطرق ---
       {id: 'road_marking_machine', name: 'دهان بالماكينة أصفر وأبيض', unit: 'متر مربع', price: 5.000},
       {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
     ];
@@ -785,11 +859,17 @@
     const resetAllBtn = document.getElementById('resetAll');
     const saveToCloudBtn = document.getElementById('saveToCloudBtn');
 
+    const beforeImageInput = document.getElementById('beforeImageInput');
+    const beforeImagePreview = document.getElementById('beforeImagePreview');
+    const beforeImgTag = document.getElementById('beforeImgTag');
+
     // --- حالة التطبيق ---
     let prices = [];
     let incidents = [];
     let savedReports = [];
     let myChart = null;
+    let currentBeforeBase64 = ""; // لتخزين صورة قبل الإصلاح للحادث الحالي
+    let activeDocForImages = null; // المرجع الحالي المفتوح في النافذة المنبثقة
 
     const uid = () => Math.random().toString(36).slice(2,9);
 
@@ -807,6 +887,23 @@
         modeSelect.value = mode;
       }catch(e){ prices = DEFAULT_PRICES; incidents = []; }
     }
+
+    // --- معالجة اختيار صورة قبل الإصلاح في شاشة التقييم ---
+    beforeImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          currentBeforeBase64 = evt.target.result;
+          beforeImgTag.src = currentBeforeBase64;
+          beforeImagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        currentBeforeBase64 = "";
+        beforeImagePreview.style.display = 'none';
+      }
+    });
 
     // --- الربط المباشر المباشر مع Firestore ---
     onSnapshot(collection(db, "accidents_archive"), (snapshot) => {
@@ -978,6 +1075,9 @@
         signerTitle: document.getElementById('signerTitle').value,
         incidents: [...incidents],
         grandTotal: grandTotal,
+        beforeImage: currentBeforeBase64 || null, // حفظ صورة قبل الإصلاح
+        afterImage: null,                         // صورة بعد الإصلاح تتحدث لاحقاً من الأرشيف
+        repairStatus: 'قيد الانتظار',             // الحالة الأصلية
         createdAt: serverTimestamp()
       };
 
@@ -1008,6 +1108,10 @@
       }
 
       filtered.forEach(r => {
+        const isRepaired = r.repairStatus === 'تم الإصلاح';
+        const badgeClass = isRepaired ? 'status-done' : 'status-pending';
+        const statusText = r.repairStatus || 'قيد الانتظار';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><strong>${r.policeRef}</strong></td>
@@ -1015,8 +1119,9 @@
           <td>${r.driver}</td>
           <td>${r.insurance}</td>
           <td><strong style="color:var(--primary);">${r.grandTotal.toFixed(3)}</strong></td>
-          <td>${r.saveDate || '-'}</td>
+          <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
           <td style="text-align: center;">
+            <button class="btn btn-secondary btn-sm" onclick="openImageModal('${r.id}')" title="إدارة وإستعراض صور قبل وبعد الإصلاح">📷 الصور</button>
             <button class="btn btn-primary btn-sm" onclick="previewArchivePdf('${r.id}')">🖨️ PDF</button>
             <button class="btn btn-secondary btn-sm" onclick="loadArchiveToEdit('${r.id}')">✏️ تعديل</button>
             <button class="btn btn-danger btn-sm" onclick="deleteArchiveDoc('${r.id}')">🗑️</button>
@@ -1025,6 +1130,61 @@
         tbody.appendChild(tr);
       });
     }
+
+    // --- وظائف النافذة المنبثقة للصور (Modal) ---
+    window.openImageModal = function(id) {
+      const docData = savedReports.find(r => r.id === id);
+      if(!docData) return;
+      activeDocForImages = docData;
+
+      document.getElementById('modalPoliceRef').textContent = docData.policeRef;
+      
+      const beforeContainer = document.getElementById('modalBeforeContainer');
+      if(docData.beforeImage) {
+        beforeContainer.innerHTML = `<img src="${docData.beforeImage}" alt="صورة قبل الإصلاح" style="max-width:100%; max-height:220px; border-radius:4px;">`;
+      } else {
+        beforeContainer.innerHTML = `<p style="color: #94a3b8; padding: 20px;">لا توجد صورة مسجلة قبل الإصلاح</p>`;
+      }
+
+      const afterContainer = document.getElementById('modalAfterContainer');
+      if(docData.afterImage) {
+        afterContainer.innerHTML = `<img src="${docData.afterImage}" alt="صورة بعد الإصلاح" style="max-width:100%; max-height:220px; border-radius:4px;">`;
+      } else {
+        afterContainer.innerHTML = `<p style="color: #94a3b8; padding: 20px;">لم يتم رفع صورة بعد الإصلاح بعد</p>`;
+      }
+
+      document.getElementById('imageModal').classList.add('active');
+    };
+
+    window.closeImageModal = function() {
+      document.getElementById('imageModal').classList.remove('active');
+      activeDocForImages = null;
+    };
+
+    window.handleAfterImageUpload = function(e) {
+      if(!activeDocForImages) return;
+      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
+
+      const file = e.target.files[0];
+      if(file) {
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+          const afterBase64 = evt.target.result;
+          try {
+            await updateDoc(doc(db, "accidents_archive", activeDocForImages.id), {
+              afterImage: afterBase64,
+              repairStatus: 'تم الإصلاح'
+            });
+            alert('✅ تم إضافة صورة بعد الإصلاح وتحديث حالة البلاغ إلى (تم الإصلاح)');
+            openImageModal(activeDocForImages.id); // إعادة التحديث
+          } catch(err) {
+            console.error("Error updating image:", err);
+            alert('❌ حدث خطأ أثناء تحفيز صورة بعد الإصلاح');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
 
     // --- تحميل حادث من الأرشيف للتعديل ---
     window.loadArchiveToEdit = function(id) {
@@ -1042,6 +1202,15 @@
         document.getElementById('insuranceCompany').value = item.insurance;
         document.getElementById('policyNo').value = item.policyNo;
         
+        if(item.beforeImage) {
+          currentBeforeBase64 = item.beforeImage;
+          beforeImgTag.src = currentBeforeBase64;
+          beforeImagePreview.style.display = 'block';
+        } else {
+          currentBeforeBase64 = "";
+          beforeImagePreview.style.display = 'none';
+        }
+
         incidents = [...item.incidents];
         saveToStorage();
         renderIncidents();
@@ -1127,7 +1296,12 @@
       saveToStorage(); renderIncidents();
     });
 
-    clearBtn.addEventListener('click',()=>{ qtyInput.value=1; });
+    clearBtn.addEventListener('click',()=>{ 
+      qtyInput.value=1; 
+      beforeImageInput.value = "";
+      currentBeforeBase64 = "";
+      beforeImagePreview.style.display = 'none';
+    });
 
     priceTableBody.addEventListener('click',(e)=>{
       if(e.target.classList.contains('delPrice')){
