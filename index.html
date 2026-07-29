@@ -291,18 +291,38 @@
     }
     .img-box-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
       gap: 10px;
       margin-top: 10px;
       max-height: 350px;
       overflow-y: auto;
     }
+    .img-box-grid .img-wrapper {
+      position: relative;
+      height: 100px;
+    }
     .img-box-grid img {
       width: 100%;
-      height: 120px;
+      height: 100%;
       object-fit: cover;
       border-radius: 4px;
       border: 1px solid var(--border);
+    }
+    .img-box-grid .del-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(220, 38, 38, 0.85);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .readonly-banner {
@@ -622,7 +642,7 @@
 
   </div>
 
-  <!-- النافذة المنبثقة لإدارة واستعراض صور الأرشيف (الصور المتعددة) -->
+  <!-- النافذة المنبثقة لإدارة واستعراض صور الأرشيف (صور متعددة لقبل وبعد) -->
   <div id="imageModal" class="modal">
     <div class="modal-content">
       <button class="modal-close" onclick="closeImageModal()">&times;</button>
@@ -637,13 +657,13 @@
         </div>
 
         <div class="img-box">
-          <h4>🟢 صورة موقع الحادث (بعد الإصلاح)</h4>
-          <div id="modalAfterContainer">
-            <p style="color: #94a3b8;">لا توجد صورة مرفوعة</p>
+          <h4>🟢 صور موقع الحادث (بعد الإصلاح)</h4>
+          <div id="modalAfterContainer" class="img-box-grid">
+            <p style="color: #94a3b8; grid-column: 1/-1;">لا توجد صور مرفوعة</p>
           </div>
           <div style="margin-top: 15px;">
-            <label for="afterImageUpload" class="btn btn-secondary btn-sm" style="cursor: pointer;">📤 رفع/تحديث صورة بعد الإصلاح</label>
-            <input type="file" id="afterImageUpload" accept="image/*" style="display: none;" onchange="handleAfterImageUpload(event)">
+            <label for="afterImageUpload" class="btn btn-secondary btn-sm" style="cursor: pointer;">📤 إضافة صور بعد الإصلاح (يمكنك اختيار عدة صور)</label>
+            <input type="file" id="afterImageUpload" accept="image/*" multiple style="display: none;" onchange="handleAfterImageUpload(event)">
           </div>
         </div>
       </div>
@@ -773,7 +793,7 @@
       }catch(e){ prices = DEFAULT_PRICES; incidents = []; }
     }
 
-    // --- التعامل مع رفع الصور المتعددة ---
+    // --- التعامل مع رفع الصور المتعددة (قبل الإصلاح) ---
     beforeImageInput.addEventListener('change', async function(e) {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
@@ -812,6 +832,11 @@
       renderArchiveTable();
       if(document.getElementById('statsTab').classList.contains('active')) {
         renderStatistics();
+      }
+      // إعادة تحديث المعرض المنبثق إذا كان مفتوحاً
+      if(activeDocForImages) {
+        const updated = savedReports.find(r => r.id === activeDocForImages.id);
+        if(updated) openImageModal(updated.id);
       }
     });
 
@@ -970,8 +995,8 @@
         signerTitle: document.getElementById('signerTitle').value,
         incidents: [...incidents],
         grandTotal: grandTotal,
-        beforeImages: [...beforeImagesList], // حفظ مصفوفة الصور المتعددة
-        afterImage: null,                         
+        beforeImages: [...beforeImagesList], // حفظ مصفوفة الصور المتعددة قبل الإصلاح
+        afterImages: [],                     // مصفوفة صور متعددة بعد الإصلاح
         repairStatus: 'قيد الانتظار',             
         createdAt: serverTimestamp()
       };
@@ -1006,7 +1031,10 @@
         const isRepaired = r.repairStatus === 'تم الإصلاح';
         const badgeClass = isRepaired ? 'status-done' : 'status-pending';
         const statusText = r.repairStatus || 'قيد الانتظار';
-        const imgCount = r.beforeImages ? r.beforeImages.length : (r.beforeImage ? 1 : 0);
+        
+        const bImgCount = r.beforeImages ? r.beforeImages.length : (r.beforeImage ? 1 : 0);
+        const aImgCount = r.afterImages ? r.afterImages.length : (r.afterImage ? 1 : 0);
+        const totalImgCount = bImgCount + aImgCount;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -1017,7 +1045,7 @@
           <td><strong style="color:var(--primary);">${r.grandTotal.toFixed(3)}</strong></td>
           <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
           <td style="text-align: center;">
-            <button class="btn btn-secondary btn-sm" onclick="openImageModal('${r.id}')" title="إدارة وإستعراض الصور">📷 الصور (${imgCount})</button>
+            <button class="btn btn-secondary btn-sm" onclick="openImageModal('${r.id}')" title="إدارة وإستعراض الصور">📷 الصور (${totalImgCount})</button>
             <button class="btn btn-primary btn-sm" onclick="previewArchivePdf('${r.id}')">🖨️ PDF</button>
             <button class="btn btn-secondary btn-sm" onclick="loadArchiveToEdit('${r.id}')">✏️ تعديل</button>
             <button class="btn btn-danger btn-sm" onclick="deleteArchiveDoc('${r.id}')">🗑️</button>
@@ -1038,25 +1066,38 @@
       const beforeContainer = document.getElementById('modalBeforeContainer');
       beforeContainer.innerHTML = '';
 
-      // قراءة الصور المتعددة سواء كانت مصفوفة أو صورة واحدة مفردة
+      // قراءة صور قبل الإصلاح المتعددة
       const beforeArr = docData.beforeImages || (docData.beforeImage ? [docData.beforeImage] : []);
 
       if(beforeArr.length > 0) {
-        beforeArr.forEach(imgSrc => {
-          const img = document.createElement('img');
-          img.src = imgSrc;
-          img.alt = "صورة الضرر قبل الإصلاح";
-          beforeContainer.appendChild(img);
+        beforeArr.forEach((imgSrc) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'img-wrapper';
+          wrapper.innerHTML = `<img src="${imgSrc}" alt="صورة الضرر قبل الإصلاح">`;
+          beforeContainer.appendChild(wrapper);
         });
       } else {
         beforeContainer.innerHTML = `<p style="color: #94a3b8; grid-column: 1/-1;">لا توجد صور متوفرة قبل الإصلاح</p>`;
       }
 
+      // قراءة صور بعد الإصلاح المتعددة
       const afterContainer = document.getElementById('modalAfterContainer');
-      if(docData.afterImage) {
-        afterContainer.innerHTML = `<img src="${docData.afterImage}" alt="صورة بعد الإصلاح" style="max-width:100%; max-height:220px; border-radius:4px; border:1px solid var(--border);">`;
+      afterContainer.innerHTML = '';
+
+      const afterArr = docData.afterImages || (docData.afterImage ? [docData.afterImage] : []);
+
+      if(afterArr.length > 0) {
+        afterArr.forEach((imgSrc, idx) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'img-wrapper';
+          wrapper.innerHTML = `
+            <img src="${imgSrc}" alt="صورة بعد الإصلاح">
+            <button class="del-btn" onclick="removeAfterImage(${idx})" title="حذف هذه الصورة">&times;</button>
+          `;
+          afterContainer.appendChild(wrapper);
+        });
       } else {
-        afterContainer.innerHTML = `<p style="color: #94a3b8; padding: 20px;">لم يتم رفع صورة بعد الإصلاح بعد</p>`;
+        afterContainer.innerHTML = `<p style="color: #94a3b8; grid-column: 1/-1; padding: 20px;">لم يتم رفع صور بعد الإصلاح بعد</p>`;
       }
 
       document.getElementById('imageModal').classList.add('active');
@@ -1067,24 +1108,55 @@
       activeDocForImages = null;
     };
 
+    // --- التعامل مع رفع صور متعددة بعد الإصلاح ---
     window.handleAfterImageUpload = async function(e) {
       if(!activeDocForImages) return;
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
 
-      const file = e.target.files[0];
-      if(file) {
-        const afterBase64 = await compressImage(file);
+      const files = Array.from(e.target.files);
+      if(files.length > 0) {
+        let currentAfterImages = activeDocForImages.afterImages || (activeDocForImages.afterImage ? [activeDocForImages.afterImage] : []);
+        
+        for (const file of files) {
+          const compressed = await compressImage(file);
+          currentAfterImages.push(compressed);
+        }
+
         try {
           await updateDoc(doc(db, "accidents_archive", activeDocForImages.id), {
-            afterImage: afterBase64,
+            afterImages: currentAfterImages,
             repairStatus: 'تم الإصلاح'
           });
-          alert('✅ تم رفع صورة بعد الإصلاح وتحديث حالة البلاغ إلى (تم الإصلاح)');
-          openImageModal(activeDocForImages.id); 
+          alert(`✅ تم رفع (${files.length}) صورة بنجاح وتحديث حالة البلاغ إلى (تم الإصلاح)`);
+          e.target.value = ""; // تفريغ الخلية
         } catch(err) {
-          console.error("Error updating image:", err);
-          alert('❌ حدث خطأ أثناء رفع صورة بعد الإصلاح');
+          console.error("Error updating images:", err);
+          alert('❌ حدث خطأ أثناء رفع الصور بعد الإصلاح');
         }
+      }
+    };
+
+    // --- حذف صورة فردية من صور بعد الإصلاح ---
+    window.removeAfterImage = async function(index) {
+      if(!activeDocForImages) return;
+      if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
+
+      if(!confirm('هل تريد حذف هذه الصورة من قائمة بعد الإصلاح؟')) return;
+
+      let currentAfterImages = activeDocForImages.afterImages || (activeDocForImages.afterImage ? [activeDocForImages.afterImage] : []);
+      currentAfterImages.splice(index, 1);
+
+      const newStatus = currentAfterImages.length > 0 ? 'تم الإصلاح' : 'قيد الانتظار';
+
+      try {
+        await updateDoc(doc(db, "accidents_archive", activeDocForImages.id), {
+          afterImages: currentAfterImages,
+          afterImage: null, // تصفير الحقل القديم
+          repairStatus: newStatus
+        });
+      } catch(err) {
+        console.error("Error deleting image:", err);
+        alert('❌ حدث خطأ أثناء الحذف');
       }
     };
 
