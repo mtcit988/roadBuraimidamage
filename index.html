@@ -61,6 +61,54 @@
       box-shadow: var(--focus-ring) !important;
     }
 
+    /* شاشة تسجيل الدخول */
+    .login-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: #ffffff;
+      border-radius: var(--radius);
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      border-top: 5px solid var(--accent);
+    }
+
+    .login-card h2 {
+      color: var(--primary-dark);
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .login-card p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      color: #f8fafc;
+    }
+
     /* الشريط العلوي الحكومي */
     .gov-header {
       background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
@@ -390,18 +438,6 @@
     tr:last-child td { border-bottom: none; }
     tfoot td { background-color: #f8fafc; font-weight: 700; border-top: 2px solid var(--border); }
 
-    /* الشارات Badges */
-    .status-badge { 
-      padding: 4px 10px; 
-      border-radius: 20px; 
-      font-size: 0.8rem; 
-      font-weight: 700; 
-      display: inline-block;
-    }
-    
-    .status-pending { background-color: var(--accent-light); color: var(--accent); }
-    .status-done { background-color: var(--success-bg); color: var(--success); }
-
     /* معاينة رفع الصور */
     .upload-zone {
       border: 2px dashed var(--border);
@@ -585,6 +621,29 @@
 </head>
 <body>
 
+  <!-- شاشة تسجيل الدخول الأومنية -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <div style="font-size: 40px; margin-bottom: 10px;">🛣️</div>
+      <h2>منصة رواء الرقمية</h2>
+      <p>تسجيل الدخول للوصول إلى نظام أضرار الطرق</p>
+      
+      <div class="form-group" style="text-align: right;">
+        <label for="loginEmail">البريد الإلكتروني</label>
+        <input type="email" id="loginEmail" placeholder="name@domain.gov.om">
+      </div>
+      
+      <div class="form-group" style="text-align: right;">
+        <label for="loginPassword">كلمة المرور</label>
+        <input type="password" id="loginPassword" placeholder="••••••••">
+      </div>
+
+      <div id="loginError" style="color: var(--danger); font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; display: none;"></div>
+
+      <button id="loginBtn" class="btn btn-primary" style="width: 100%; padding: 12px;">تسجيل الدخول</button>
+    </div>
+  </div>
+
   <!-- هيدر النظام -->
   <header class="gov-header" role="banner">
     <div class="gov-header-container">
@@ -595,8 +654,12 @@
           <p>منصة حصر التكلفة وإصدار التقارير الميدانية</p>
         </div>
       </div>
-      <div>
+      <div style="display: flex; gap: 12px; align-items: center;">
         <span class="badge-offline">مزامنة سحابية متقدمة (Firebase)</span>
+        <div class="user-profile-badge" id="userBadge" style="display: none;">
+          👤 <span id="userEmailTxt">...</span>
+          <button id="logoutBtn" class="btn btn-danger btn-sm" style="margin-right: 8px;">خروج</button>
+        </div>
       </div>
     </div>
   </header>
@@ -934,10 +997,11 @@
     وزارة النقل والاتصالات وتقنية المعلومات - دائرة الطرق بمحافظة البريمي - سلطنة عمان © 2026
   </footer>
 
-  <!-- كود الفايربيس للربط السحابي -->
+  <!-- كود الفايربيس للربط السحابي مع مصادقة المستخدمين -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     // إعدادات Firebase
     const firebaseConfig = {
@@ -950,120 +1014,140 @@
       measurementId: "G-9F8BPPX118"
     };
 
-    // تهيئة Firebase
+    // تهيئة Firebase والـ Auth
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-     // --- البيانات الافتراضية ---
-   const DEFAULT_PRICES = [
-  // --- البنود الأساسية ---
-  {id: 'subgrade', name: 'طبقة الأساس المساعد (م٣)', unit: 'متر مكعب', price: 6.600},
-  {id: 'aggregate', name: 'طبقة الأساس الحصوي (م٣)', unit: 'متر مكعب', price: 8.500},
-  {id: 'prime_coat', name: 'طبقة التشريب (م٢)', unit: 'متر مربع', price: 0.400},
-  {id: 'asphalt_base', name: 'طبقة الأساس الإسفلتي (م٣)', unit: 'متر مكعب', price: 70.000},
-  {id: 'tack_coat', name: 'الطبقة اللاصقة', unit: 'متر مربع', price: 0.500},
-  {id: 'asphalt_surface', name: 'طبقة الأسفلت السطحية', unit: 'متر مكعب', price: 75.000},
-  {id: 'subbase', name: 'طبقة ما تحت الأساس', unit: 'متر مكعب', price: 5.000},
+    // إدارة حالة تسجيل الدخول
+    const loginScreen = document.getElementById('loginScreen');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const userBadge = document.getElementById('userBadge');
+    const userEmailTxt = document.getElementById('userEmailTxt');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-  // --- أعمال الحفريات والقطع ---
-  {id: 'exc_normal', name: 'الحفر في الأرض العادية', unit: 'متر مكعب', price: 5.000},
-  {id: 'exc_soft_rock', name: 'الحفر في الأرض الصخرية اللينة', unit: 'متر مكعب', price: 10.000},
-  {id: 'exc_hard_rock', name: 'الحفر في الأرض الصخرية الصلبة', unit: 'متر مكعب', price: 15.000},
-  {id: 'asphalt_cut', name: 'قطع الأسفلت', unit: 'متر مربع', price: 4.000},
+    loginBtn.addEventListener('click', async () => {
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value.trim();
+      loginError.style.display = 'none';
 
-  // --- اللوحات الإرشادية والتحذيرية ---
-  {id: 'tri_sign_600', name: 'لوحة مثلثة قطر 600 مليمتر', unit: 'عدد', price: 45.000},
-  {id: 'tri_sign_750', name: 'لوحة مثلثة قطر 750 مليمتر', unit: 'عدد', price: 52.500},
-  {id: 'tri_sign_900', name: 'لوحة مثلثة قطر 900 مليمتر', unit: 'عدد', price: 60.000},
-  {id: 'tri_sign_1000', name: 'لوحة مثلثة قطر 1000 مليمتر', unit: 'عدد', price: 75.000},
-  {id: 'tri_sign_1200', name: 'لوحة مثلثة قطر 1200 مليمتر', unit: 'عدد', price: 90.000},
-  {id: 'circ_sign_600', name: 'لوحة دائرية قطر 600 مليمتر', unit: 'عدد', price: 50.000},
-  {id: 'circ_sign_900', name: 'لوحة دائرية قطر 900 مليمتر', unit: 'عدد', price: 75.000},
-  {id: 'circ_sign_1000', name: 'لوحة دائرية قطر 1000 مليمتر', unit: 'عدد', price: 80.000},
-  {id: 'circ_sign_1200', name: 'لوحة دائرية قطر 1200 مليمتر', unit: 'عدد', price: 85.000},
-  {id: 'rect_sign', name: 'لوحة مستطيلة أو مربعة أو سهمية', unit: 'متر مربع', price: 70.000},
-  {id: 'gantry_sign_1', name: 'لوحات معلقة مع الإطار رقم 1', unit: 'متر مربع', price: 190.000},
+      if(!email || !password) {
+        loginError.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+        loginError.style.display = 'block';
+        return;
+      }
 
-  // --- الأعمدة والقوائم ---
-  {id: 'gantry_post_2', name: 'عمود اللوحة المعلقة رقم 2', unit: 'متر طولي', price: 500.000},
-  {id: 'gantry_post_3', name: 'عمود اللوحة المعلقة رقم 3', unit: 'متر طولي', price: 250.000},
-  {id: 'pole_2in', name: 'عمود إشارة قطر 2 بوصة', unit: 'عدد', price: 30.000},
-  {id: 'pole_2_5in', name: 'عمود إشارة قطر 2.5 بوصة', unit: 'عدد', price: 40.000},
-  {id: 'pole_3in', name: 'عمود إشارة قطر 3 بوصة', unit: 'عدد', price: 60.000},
-  {id: 'pole_4in', name: 'عمود إشارة قطر 4 بوصة', unit: 'عدد', price: 80.000},
-  {id: 'pole_5in', name: 'عمود إشارة قطر 5 بوصة', unit: 'عدد', price: 90.000},
-  {id: 'pole_6in', name: 'عمود إشارة قطر 6 بوصة', unit: 'عدد', price: 100.000},
-  {id: 'pole_8in', name: 'عمود إشارة قطر 8 بوصة', unit: 'عدد', price: 120.000},
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        loginError.textContent = 'خطأ في تسجيل الدخول: يرجى التأكد من البيانات';
+        loginError.style.display = 'block';
+      }
+    });
 
-  // --- تجهيزات معابر الطوارئ والمشاة ---
-  {id: 'emerg_posts', name: 'أعمدة معابر الطوارئ', unit: 'عدد', price: 25.000},
-  {id: 'emerg_chains', name: 'سلاسل حديدية لفتحات الطوارئ', unit: 'متر طولي', price: 4.000},
-  {id: 'irish_cross_reflector', name: 'أعمدة المعابر الإيرلندية شاملاً العاكس', unit: 'عدد', price: 75.000},
-  {id: 'irish_cross_30cm', name: 'أعمدة المعابر الإيرلندية بطول 30سم', unit: 'عدد', price: 32.000},
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
 
-  // --- الحواجز الواقية وملحقاتها ---
-  {id: 'guardrail_unit', name: 'الحاجز الواقي 3.81', unit: 'عدد', price: 57.150},
-  {id: 'guardrail_meter', name: 'الحاجز الواقي (م طولي)', unit: 'متر طولي', price: 15.000},
-  {id: 'ground_beam', name: 'الكمرة المثبتة في الأرض', unit: 'عدد', price: 50.000},
-  {id: 'end_shoe', name: 'نهاية الحاجز (كوع)', unit: 'عدد', price: 25.000},
-  {id: 'support_post', name: 'العمود الحامل (شامل الفاصل والمسامير)', unit: 'عدد', price: 25.000},
-  {id: 'pedestrian_guard_1', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 1', unit: 'متر طولي', price: 80.000},
-  {id: 'pedestrian_guard_2', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 2', unit: 'متر طولي', price: 140.000},
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginScreen.style.display = 'none';
+        userBadge.style.display = 'inline-flex';
+        userEmailTxt.textContent = user.email;
+        initAppListeners();
+      } else {
+        loginScreen.style.display = 'flex';
+        userBadge.style.display = 'none';
+      }
+    });
 
-  // --- ممتصات الصدمات والعواكس ---
-  {id: 'front_piece', name: 'القطعة الأمامية', unit: 'القطعة', price: 420.000},
-  {id: 'front_support_pipes', name: 'الداعم الأمامي (أنابيب)', unit: 'القطعة', price: 100.000},
-  {id: 'attenuator_belt_a', name: 'حزام امتصاص القوة نوع أ', unit: 'القطعة', price: 400.000},
-  {id: 'attenuator_belt_b', name: 'حزام امتصاص القوة نوع ب', unit: 'القطعة', price: 400.000},
-  {id: 'sliding_ring', name: 'شريحة الجانب الأمامي (الحلقة المتحركة)', unit: 'القطعة', price: 200.000},
-  {id: 'double_reflector', name: 'عاكس من الجهتين', unit: 'القطعة', price: 6.000},
-
-  // --- العواكس وعيون القطط (إضافات جديدة) ---
-  {id: 'single_reflector', name: 'عاكس من جهة واحدة', unit: 'القطعة', price: 4.000},
-  {id: 'foldable_post_reflector_2s', name: 'عاكس من جهتين (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 20.000},
-  {id: 'foldable_post_reflector_1s', name: 'عاكس من جهة واحدة (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 15.000},
-  {id: 'cat_eyes_2s', name: 'عاكس من الجهتين (عيون القطط)', unit: 'القطعة', price: 6.500},
-  {id: 'cat_eyes_1s', name: 'عاكس من جهة واحدة (عيون القطط)', unit: 'القطعة', price: 5.000},
-
-  // --- الأعمال الخرسانية والجسور (إضافات جديدة) ---
-  {id: 'bridge_conc_rebar', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
-  {id: 'bridge_prestressed_conc', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور مسبقة الإجهاد وبدون الكابل', unit: 'متر مكعب', price: 160.000},
-  {id: 'precast_cable', name: 'الكابل للخرسانة المسبقة التجهيز', unit: 'الطن', price: 1700.000},
-  {id: 'box_culvert_conc', name: 'خرسانة مسلحة للمعابر الصندوقية شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
-  {id: 'irish_cross_rc', name: 'خرسانة مسلحة للمعابر الإيرلندية شاملا حديد التسليح', unit: 'متر مكعب', price: 115.000},
-  {id: 'irish_cross_plain_conc', name: 'خرسانة عادية للمعابر الايرلندية (لايشمل حديد التسليح)', unit: 'متر مكعب', price: 80.000},
-  {id: 'retaining_wall_conc', name: 'خرسانة مسلحة للحوائط الساندة شاملا حديد التسليح', unit: 'متر مكعب', price: 120.000},
-  {id: 'general_plain_conc', name: 'خرسانة عادية لأي أعمال أخرى', unit: 'متر مكعب', price: 75.000},
-
-  // --- المعابر الأنبوبية (إضافات جديدة) ---
-  {id: 'pipe_culvert_900_dbl', name: 'معابر أنبوبية قطر 900 مليمتر مزدوجة', unit: 'متر طولي', price: 180.000},
-  {id: 'pipe_culvert_600_dbl', name: 'معابر أنبوبية قطر 600 مليمتر مزدوجة', unit: 'متر طولي', price: 130.000},
-  {id: 'pipe_culvert_900_sgl', name: 'معابر أنبوبية قطر 900 مليمتر مفردة', unit: 'متر طولي', price: 110.000},
-  {id: 'pipe_culvert_600_sgl', name: 'معابر أنبوبية قطر 600 مليمتر مفردة', unit: 'متر طولي', price: 80.000},
-
-  // --- الجابيون والربراب والحماية (إضافات جديدة) ---
-  {id: 'riprap_dry', name: 'ربراب بدون مونه', unit: 'متر مكعب', price: 20.000},
-  {id: 'riprap_mortared', name: 'ربراب بالمونه شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 30.000},
-  {id: 'gabion', name: 'جابيون شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 25.000},
-  {id: 'waterway_lining', name: 'تبطين المجاري المائية الخرسانية', unit: 'متر مكعب', price: 45.000},
-
-  // --- الحواجز الخرسانية وأحجار الرصيف (إضافات جديدة) ---
-  {id: 'conc_barrier_std_h40', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 40 سم', unit: 'متر طولي', price: 65.000},
-  {id: 'conc_barrier_std_h60', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 60 سم', unit: 'متر طولي', price: 80.000},
-  {id: 'conc_barrier_std_h80', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 80 سم', unit: 'متر طولي', price: 100.000},
-  {id: 'conc_barrier_hd_h40', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 40 سم', unit: 'متر طولي', price: 90.000},
-  {id: 'conc_barrier_hd_h60', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 60 سم', unit: 'متر طولي', price: 100.000},
-  {id: 'conc_barrier_hd_h80', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 80 سم', unit: 'متر طولي', price: 120.000},
-  {id: 'curb_pedestrian', name: 'أحجار الرصيف لمعبر المشاة', unit: 'متر طولي', price: 15.000},
-  {id: 'curb_mountable', name: 'أحجار الرصيف قابلة للصعود', unit: 'متر طولي', price: 15.000},
-  {id: 'interlock_tiles', name: 'بلاط انترلوك', unit: 'متر مربع', price: 10.000},
-  {id: 'tactile_tiles', name: 'بلاطات ذات الحبيبات الظاهرة', unit: 'متر مربع', price: 10.000},
-
-  // --- أطليَة ودهانات الطرق (إضافات جديدة) ---
-  {id: 'road_marking_machine', name: 'دهان بالماكينة أصفر وأبيض', unit: 'متر مربع', price: 5.000},
-  {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
-];
-
+    // --- البيانات الافتراضية ---
+    const DEFAULT_PRICES = [
+      {id: 'subgrade', name: 'طبقة الأساس المساعد (م٣)', unit: 'متر مكعب', price: 6.600},
+      {id: 'aggregate', name: 'طبقة الأساس الحصوي (م٣)', unit: 'متر مكعب', price: 8.500},
+      {id: 'prime_coat', name: 'طبقة التشريب (م٢)', unit: 'متر مربع', price: 0.400},
+      {id: 'asphalt_base', name: 'طبقة الأساس الإسفلتي (م٣)', unit: 'متر مكعب', price: 70.000},
+      {id: 'tack_coat', name: 'الطبقة اللاصقة', unit: 'متر مربع', price: 0.500},
+      {id: 'asphalt_surface', name: 'طبقة الأسفلت السطحية', unit: 'متر مكعب', price: 75.000},
+      {id: 'subbase', name: 'طبقة ما تحت الأساس', unit: 'متر مكعب', price: 5.000},
+      {id: 'exc_normal', name: 'الحفر في الأرض العادية', unit: 'متر مكعب', price: 5.000},
+      {id: 'exc_soft_rock', name: 'الحفر في الأرض الصخرية اللينة', unit: 'متر مكعب', price: 10.000},
+      {id: 'exc_hard_rock', name: 'الحفر في الأرض الصخرية الصلبة', unit: 'متر مكعب', price: 15.000},
+      {id: 'asphalt_cut', name: 'قطع الأسفلت', unit: 'متر مربع', price: 4.000},
+      {id: 'tri_sign_600', name: 'لوحة مثلثة قطر 600 مليمتر', unit: 'عدد', price: 45.000},
+      {id: 'tri_sign_750', name: 'لوحة مثلثة قطر 750 مليمتر', unit: 'عدد', price: 52.500},
+      {id: 'tri_sign_900', name: 'لوحة مثلثة قطر 900 مليمتر', unit: 'عدد', price: 60.000},
+      {id: 'tri_sign_1000', name: 'لوحة مثلثة قطر 1000 مليمتر', unit: 'عدد', price: 75.000},
+      {id: 'tri_sign_1200', name: 'لوحة مثلثة قطر 1200 مليمتر', unit: 'عدد', price: 90.000},
+      {id: 'circ_sign_600', name: 'لوحة دائرية قطر 600 مليمتر', unit: 'عدد', price: 50.000},
+      {id: 'circ_sign_900', name: 'لوحة دائرية قطر 900 مليمتر', unit: 'عدد', price: 75.000},
+      {id: 'circ_sign_1000', name: 'لوحة دائرية قطر 1000 مليمتر', unit: 'عدد', price: 80.000},
+      {id: 'circ_sign_1200', name: 'لوحة دائرية قطر 1200 مليمتر', unit: 'عدد', price: 85.000},
+      {id: 'rect_sign', name: 'لوحة مستطيلة أو مربعة أو سهمية', unit: 'متر مربع', price: 70.000},
+      {id: 'gantry_sign_1', name: 'لوحات معلقة مع الإطار رقم 1', unit: 'متر مربع', price: 190.000},
+      {id: 'gantry_post_2', name: 'عمود اللوحة المعلقة رقم 2', unit: 'متر طولي', price: 500.000},
+      {id: 'gantry_post_3', name: 'عمود اللوحة المعلقة رقم 3', unit: 'متر طولي', price: 250.000},
+      {id: 'pole_2in', name: 'عمود إشارة قطر 2 بوصة', unit: 'عدد', price: 30.000},
+      {id: 'pole_2_5in', name: 'عمود إشارة قطر 2.5 بوصة', unit: 'عدد', price: 40.000},
+      {id: 'pole_3in', name: 'عمود إشارة قطر 3 بوصة', unit: 'عدد', price: 60.000},
+      {id: 'pole_4in', name: 'عمود إشارة قطر 4 بوصة', unit: 'عدد', price: 80.000},
+      {id: 'pole_5in', name: 'عمود إشارة قطر 5 بوصة', unit: 'عدد', price: 90.000},
+      {id: 'pole_6in', name: 'عمود إشارة قطر 6 بوصة', unit: 'عدد', price: 100.000},
+      {id: 'pole_8in', name: 'عمود إشارة قطر 8 بوصة', unit: 'عدد', price: 120.000},
+      {id: 'emerg_posts', name: 'أعمدة معابر الطوارئ', unit: 'عدد', price: 25.000},
+      {id: 'emerg_chains', name: 'سلاسل حديدية لفتحات الطوارئ', unit: 'متر طولي', price: 4.000},
+      {id: 'irish_cross_reflector', name: 'أعمدة المعابر الإيرلندية شاملاً العاكس', unit: 'عدد', price: 75.000},
+      {id: 'irish_cross_30cm', name: 'أعمدة المعابر الإيرلندية بطول 30سم', unit: 'عدد', price: 32.000},
+      {id: 'guardrail_unit', name: 'الحاجز الواقي 3.81', unit: 'عدد', price: 57.150},
+      {id: 'guardrail_meter', name: 'الحاجز الواقي (م طولي)', unit: 'متر طولي', price: 15.000},
+      {id: 'ground_beam', name: 'الكمرة المثبتة في الأرض', unit: 'عدد', price: 50.000},
+      {id: 'end_shoe', name: 'نهاية الحاجز (كوع)', unit: 'عدد', price: 25.000},
+      {id: 'support_post', name: 'العمود الحامل (شامل الفاصل والمسامير)', unit: 'عدد', price: 25.000},
+      {id: 'pedestrian_guard_1', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 1', unit: 'متر طولي', price: 80.000},
+      {id: 'pedestrian_guard_2', name: 'حاجز واقي لعبور المشاة وعلى الجسور رقم 2', unit: 'متر طولي', price: 140.000},
+      {id: 'front_piece', name: 'القطعة الأمامية', unit: 'القطعة', price: 420.000},
+      {id: 'front_support_pipes', name: 'الداعم الأمامي (أنابيب)', unit: 'القطعة', price: 100.000},
+      {id: 'attenuator_belt_a', name: 'حزام امتصاص القوة نوع أ', unit: 'القطعة', price: 400.000},
+      {id: 'attenuator_belt_b', name: 'حزام امتصاص القوة نوع ب', unit: 'القطعة', price: 400.000},
+      {id: 'sliding_ring', name: 'شريحة الجانب الأمامي (الحلقة المتحركة)', unit: 'القطعة', price: 200.000},
+      {id: 'double_reflector', name: 'عاكس من الجهتين', unit: 'القطعة', price: 6.000},
+      {id: 'single_reflector', name: 'عاكس من جهة واحدة', unit: 'القطعة', price: 4.000},
+      {id: 'foldable_post_reflector_2s', name: 'عاكس من جهتين (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 20.000},
+      {id: 'foldable_post_reflector_1s', name: 'عاكس من جهة واحدة (لأعمدة قابلة للإنطواء)', unit: 'القطعة', price: 15.000},
+      {id: 'cat_eyes_2s', name: 'عاكس من الجهتين (عيون القطط)', unit: 'القطعة', price: 6.500},
+      {id: 'cat_eyes_1s', name: 'عاكس من جهة واحدة (عيون القطط)', unit: 'القطعة', price: 5.000},
+      {id: 'bridge_conc_rebar', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
+      {id: 'bridge_prestressed_conc', name: 'خرسانة مسلحة لأعمدة وكمرات الجسور مسبقة الإجهاد وبدون الكابل', unit: 'متر مكعب', price: 160.000},
+      {id: 'precast_cable', name: 'الكابل للخرسانة المسبقة التجهيز', unit: 'الطن', price: 1700.000},
+      {id: 'box_culvert_conc', name: 'خرسانة مسلحة للمعابر الصندوقية شاملا حديد التسليح', unit: 'متر مكعب', price: 135.000},
+      {id: 'irish_cross_rc', name: 'خرسانة مسلحة للمعابر الإيرلندية شاملا حديد التسليح', unit: 'متر مكعب', price: 115.000},
+      {id: 'irish_cross_plain_conc', name: 'خرسانة عادية للمعابر الايرلندية (لايشمل حديد التسليح)', unit: 'متر مكعب', price: 80.000},
+      {id: 'retaining_wall_conc', name: 'خرسانة مسلحة للحوائط الساندة شاملا حديد التسليح', unit: 'متر مكعب', price: 120.000},
+      {id: 'general_plain_conc', name: 'خرسانة عادية لأي أعمال أخرى', unit: 'متر مكعب', price: 75.000},
+      {id: 'pipe_culvert_900_dbl', name: 'معابر أنبوبية قطر 900 مليمتر مزدوجة', unit: 'متر طولي', price: 180.000},
+      {id: 'pipe_culvert_600_dbl', name: 'معابر أنبوبية قطر 600 مليمتر مزدوجة', unit: 'متر طولي', price: 130.000},
+      {id: 'pipe_culvert_900_sgl', name: 'معابر أنبوبية قطر 900 مليمتر مفردة', unit: 'متر طولي', price: 110.000},
+      {id: 'pipe_culvert_600_sgl', name: 'معابر أنبوبية قطر 600 مليمتر مفردة', unit: 'متر طولي', price: 80.000},
+      {id: 'riprap_dry', name: 'ربراب بدون مونه', unit: 'متر مكعب', price: 20.000},
+      {id: 'riprap_mortared', name: 'ربراب بالمونه شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 30.000},
+      {id: 'gabion', name: 'جابيون شاملاً إزالة التالف والحفريات', unit: 'متر مكعب', price: 25.000},
+      {id: 'waterway_lining', name: 'تبطين المجاري المائية الخرسانية', unit: 'متر مكعب', price: 45.000},
+      {id: 'conc_barrier_std_h40', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 40 سم', unit: 'متر طولي', price: 65.000},
+      {id: 'conc_barrier_std_h60', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 60 سم', unit: 'متر طولي', price: 80.000},
+      {id: 'conc_barrier_std_h80', name: 'حواجز خرسانية (شاملة التسليح) عادية رقم 1 ارتفاع 80 سم', unit: 'متر طولي', price: 100.000},
+      {id: 'conc_barrier_hd_h40', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 40 سم', unit: 'متر طولي', price: 90.000},
+      {id: 'conc_barrier_hd_h60', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 60 سم', unit: 'متر طولي', price: 100.000},
+      {id: 'conc_barrier_hd_h80', name: 'حواجز خرسانية (شاملة التسليح) ذات مقاومة عالية رقم 2 ارتفاع 80 سم', unit: 'متر طولي', price: 120.000},
+      {id: 'curb_pedestrian', name: 'أحجار الرصيف لمعبر المشاة', unit: 'متر طولي', price: 15.000},
+      {id: 'curb_mountable', name: 'أحجار الرصيف قابلة للصعود', unit: 'متر طولي', price: 15.000},
+      {id: 'interlock_tiles', name: 'بلاط انترلوك', unit: 'متر مربع', price: 10.000},
+      {id: 'tactile_tiles', name: 'بلاطات ذات الحبيبات الظاهرة', unit: 'متر مربع', price: 10.000},
+      {id: 'road_marking_machine', name: 'دهان بالماكينة أصفر وأبيض', unit: 'متر مربع', price: 5.000},
+      {id: 'road_marking_manual', name: 'دهان باليد أصفر وأبيض', unit: 'متر مربع', price: 10.000}
+    ];
 
     // --- عناصر DOM ---
     const compSelect = document.getElementById('compSelect');
@@ -1093,12 +1177,11 @@
     let incidents = [];
     let savedReports = [];
     let myChart = null;
-    let beforeImagesList = []; // مصفوفة لتخزين جميع الصور المضغوطة قبل الإصلاح
+    let beforeImagesList = [];
     let activeDocForImages = null;
 
     const uid = () => Math.random().toString(36).slice(2,9);
 
-    // دالة ضغط الصور لتصغير الحجم قبل الحفظ
     function compressImage(file, maxWidth = 800, quality = 0.65) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -1142,7 +1225,6 @@
       }catch(e){ prices = DEFAULT_PRICES; incidents = []; }
     }
 
-    // --- التعامل مع رفع الصور المتعددة (قبل الإصلاح) ---
     beforeImageInput.addEventListener('change', async function(e) {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
@@ -1172,24 +1254,23 @@
       renderBeforeImagesPreview();
     };
 
-    // --- المزامنة المباشرة Firestore ---
-    onSnapshot(collection(db, "accidents_archive"), (snapshot) => {
-      savedReports = [];
-      snapshot.forEach((doc) => {
-        savedReports.push({ id: doc.id, ...doc.data() });
+    function initAppListeners() {
+      onSnapshot(collection(db, "accidents_archive"), (snapshot) => {
+        savedReports = [];
+        snapshot.forEach((doc) => {
+          savedReports.push({ id: doc.id, ...doc.data() });
+        });
+        renderArchiveTable();
+        if(document.getElementById('statsTab').classList.contains('active')) {
+          renderStatistics();
+        }
+        if(activeDocForImages) {
+          const updated = savedReports.find(r => r.id === activeDocForImages.id);
+          if(updated) openImageModal(updated.id);
+        }
       });
-      renderArchiveTable();
-      if(document.getElementById('statsTab').classList.contains('active')) {
-        renderStatistics();
-      }
-      // إعادة تحديث المعرض المنبثق إذا كان مفتوحاً
-      if(activeDocForImages) {
-        const updated = savedReports.find(r => r.id === activeDocForImages.id);
-        if(updated) openImageModal(updated.id);
-      }
-    });
+    }
 
-    // --- التنقل بين التبويبات ---
     window.switchTab = function(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => {
@@ -1206,7 +1287,6 @@
       if(tabId === 'statsTab') { btns[2].classList.add('active'); btns[2].setAttribute('aria-selected', 'true'); renderStatistics(); }
     };
 
-    // --- تحويل الرقم إلى كلمات عربية ---
     function numberToArabicWords(num){
       let grandTotal = num;
       let totalRial = Math.floor(grandTotal);
@@ -1323,8 +1403,8 @@
       unitInput.value=sel?sel.unit:'';
     }
 
-    // --- حفظ التقرير في الأرشيف ---
     saveToCloudBtn.addEventListener('click', async () => {
+      if(!auth.currentUser) return alert('يرجى تسجيل الدخول أولاً!');
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
       if(incidents.length === 0) return alert('لا توجد أضرار مسجلة للحادث للحفظ!');
       
@@ -1349,9 +1429,9 @@
         signerTitle: document.getElementById('signerTitle').value,
         incidents: [...incidents],
         grandTotal: grandTotal,
-        beforeImages: [...beforeImagesList], // حفظ مصفوفة الصور المتعددة قبل الإصلاح
-        afterImages: [],                     // مصفوفة صور متعددة بعد الإصلاح
-        repairStatus: 'قيد الانتظار',             
+        beforeImages: [...beforeImagesList],
+        afterImages: [],
+        createdBy: auth.currentUser.email,
         createdAt: serverTimestamp()
       };
 
@@ -1364,7 +1444,6 @@
       }
     });
 
-    // --- عرض جدول الأرشيف ---
     function renderArchiveTable() {
       const tbody = document.querySelector('#archiveTable tbody');
       const filter = document.getElementById('archiveSearch').value.toLowerCase();
@@ -1404,7 +1483,6 @@
       });
     }
 
-    // --- عرض الصور داخل Modal النافذة المنبثقة ---
     window.openImageModal = function(id) {
       const docData = savedReports.find(r => r.id === id);
       if(!docData) return;
@@ -1415,7 +1493,6 @@
       const beforeContainer = document.getElementById('modalBeforeContainer');
       beforeContainer.innerHTML = '';
 
-      // قراءة صور قبل الإصلاح المتعددة
       const beforeArr = docData.beforeImages || (docData.beforeImage ? [docData.beforeImage] : []);
 
       if(beforeArr.length > 0) {
@@ -1429,7 +1506,6 @@
         beforeContainer.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1;">لا توجد صور متوفرة قبل الإصلاح</p>`;
       }
 
-      // قراءة صور بعد الإصلاح المتعددة
       const afterContainer = document.getElementById('modalAfterContainer');
       afterContainer.innerHTML = '';
 
@@ -1457,7 +1533,6 @@
       activeDocForImages = null;
     };
 
-    // --- التعامل مع رفع صور متعددة بعد الإصلاح ---
     window.handleAfterImageUpload = async function(e) {
       if(!activeDocForImages) return;
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
@@ -1473,8 +1548,7 @@
 
         try {
           await updateDoc(doc(db, "accidents_archive", activeDocForImages.id), {
-            afterImages: currentAfterImages,
-            repairStatus: 'تم الإصلاح'
+            afterImages: currentAfterImages
           });
           alert(`✅ تم رفع (${files.length}) صورة بنجاح!`);
           e.target.value = ""; 
@@ -1485,7 +1559,6 @@
       }
     };
 
-    // --- حذف صورة فردية من صور بعد الإصلاح ---
     window.removeAfterImage = async function(index) {
       if(!activeDocForImages) return;
       if(modeSelect.value==='readonly') return alert('الوضع قراءة فقط مفعل!');
@@ -1495,13 +1568,10 @@
       let currentAfterImages = activeDocForImages.afterImages || (activeDocForImages.afterImage ? [activeDocForImages.afterImage] : []);
       currentAfterImages.splice(index, 1);
 
-      const newStatus = currentAfterImages.length > 0 ? 'تم الإصلاح' : 'قيد الانتظار';
-
       try {
         await updateDoc(doc(db, "accidents_archive", activeDocForImages.id), {
           afterImages: currentAfterImages,
-          afterImage: null, 
-          repairStatus: newStatus
+          afterImage: null
         });
       } catch(err) {
         console.error("Error deleting image:", err);
